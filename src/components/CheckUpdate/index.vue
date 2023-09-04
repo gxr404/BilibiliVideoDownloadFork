@@ -34,7 +34,7 @@ const handleOk = () => {
 
 const checkUpdate = async () => {
   try {
-    const { body } = await window.electron.got('https://api.github.com/repos/blogwy/BilibiliVideoDownload/releases/latest', { responseType: 'json' })
+    const { body } = await window.electron.got('https://api.github.com/repos/gxr404/BilibiliVideoDownloadFork/releases/latest', { responseType: 'json' })
     newVersion.value = body.tag_name.substr(1)
     url.value = body.html_url
     updateContent.value = body.body

@@ -8,7 +8,7 @@
 
 ***由于[原项目](https://github.com/BilibiliVideoDownload/BilibiliVideoDownload)已经好久没人维护，无人修复bug，因此fork该库修复bug，优化功能体验***
 
-- [x] 💪 新增新版合集获取
+- [x] 💪 新增新版接口合集视频获取
 - [x] 💪 增加下载失败时重新下载按钮
 - [x] 💪 优化体验，下载列表右击即选中
 - [x] 🛠️ 修复多任务重复下载任务
