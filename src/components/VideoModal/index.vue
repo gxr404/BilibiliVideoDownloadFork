@@ -61,7 +61,7 @@ import { getDownloadList, addDownload } from '../../core/bilibili'
 import { userQuality } from '../../assets/data/quality'
 import { VideoData } from '../../type'
 import { videoData } from '../../assets/data/default'
-import { sleep } from '../../utils'
+import { STATUS } from '../../assets/data/status'
 
 const visible = ref<boolean>(false)
 const confirmLoading = ref<boolean>(false)
@@ -89,12 +89,12 @@ const handleDownload = async () => {
   let selectedTask = ''
   for (const key in taskList) {
     const task = taskList[key]
-    if (task.status === 1) {
+    if (task.status === STATUS.PLAN_START) {
       window.electron.downloadVideo(task)
       count += 1
       if (!selectedTask) selectedTask = task.id
     }
-    await sleep(300)
+    // await sleep(300)
   }
   store.baseStore().addDownloadingTaskCount(count)
   confirmLoading.value = false
@@ -191,6 +191,6 @@ defineExpose({
   }
 }
 .custom-radio{
-  width: 130px;
+  width: 150px;
 }
 </style>

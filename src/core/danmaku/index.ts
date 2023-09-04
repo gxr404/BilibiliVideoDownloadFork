@@ -4,12 +4,12 @@ import { ascendingSort } from './utils/sort'
 import { decodeDanmakuSegment, decodeDanmakuView } from './danmaku-segment'
 import { DanmakuConverterConfig, DanmakuConverter } from './danmaku-converter'
 import { XmlDanmaku } from './xml-danmaku'
-import UA from '../../assets/data/ua'
 import { store, pinia } from '../../store'
+import { randUserAgent } from '../../utils'
 
 const gotConfig = {
   headers: {
-    'User-Agent': `${UA}`,
+    'User-Agent': randUserAgent(),
     cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
   }
 }

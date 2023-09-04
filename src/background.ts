@@ -2,19 +2,18 @@
 
 import { app, protocol, BrowserWindow, ipcMain, shell, dialog, Menu, globalShortcut } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
-import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
+import installExtension from 'electron-devtools-installer'
 import path from 'path'
 import fs from 'fs-extra'
 import { settingData } from './assets/data/default'
 import { TaskData, SettingData } from './type'
 import downloadVideo from './core/download'
-const Store = require('electron-store')
+import store from './core/mainStore'
+import { STATUS } from './assets/data/status'
+
 const got = require('got')
 const log = require('electron-log')
 
-const store = new Store({
-  name: 'database'
-})
 const isDevelopment = process.env.NODE_ENV !== 'production'
 let win: BrowserWindow
 
@@ -65,7 +64,7 @@ ipcMain.handle('open-dir-dialog', () => {
   if (filePaths) {
     return Promise.resolve(filePaths[0])
   } else {
-    return Promise.reject('not select')
+    return Promise.reject(new Error('not select'))
   }
 })
 
@@ -302,9 +301,19 @@ function initStore () {
   }
   // 存储store
   win.webContents.on('did-finish-load', () => {
+    // 开启应用时如果有进行中的任务都重置为失败状态
+    // 检查当前是否有下载中任务
+    const taskList = store.get('taskList')
+    for (const key in taskList) {
+      const task = taskList[key]
+      if (task.status !== STATUS.COMPLETED && task.status !== STATUS.FAIL) {
+        task.status = STATUS.FAIL
+      }
+    }
+    store.set('taskList', taskList)
     win.webContents.send('init-store', {
       setting: store.get('setting'),
-      taskList: store.get('taskList')
+      taskList
     })
   })
 }
@@ -315,10 +324,10 @@ function handleCloseApp () {
   let count = 0
   for (const key in taskList) {
     const task = taskList[key]
-    if (task.status !== 0 && task.status !== 5) {
+    if (task.status !== STATUS.COMPLETED && task.status !== STATUS.FAIL) {
       count += 1
-      task.status = 5
-      task.progress = 100
+      task.status = STATUS.FAIL
+      // task.progress = 100
     }
   }
   dialog.showMessageBox(win, {
@@ -328,7 +337,6 @@ function handleCloseApp () {
     buttons: ['取消', '关闭']
   })
     .then(res => {
-      console.log(res);
       if (count) store.set('taskList', taskList)
       if (res.response === 1) win.destroy()
     })
@@ -355,7 +363,7 @@ app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-      await installExtension(VUEJS3_DEVTOOLS)
+      await installExtension('nhdogjmejiglipccpnnnanhbledajbpd')
     } catch (e: any) {
       console.error('Vue Devtools failed to install:', e.toString())
     }

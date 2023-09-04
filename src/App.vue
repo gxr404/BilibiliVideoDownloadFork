@@ -26,7 +26,7 @@ import { pinia, store } from './store'
 import { checkLogin, addDownload } from './core/bilibili'
 import { downloadDanmaku } from './core/danmaku'
 import { SettingData, TaskData, TaskList } from './type'
-import { sleep } from './utils'
+import { STATUS } from './assets/data/status'
 
 dayjs.locale('zh-cn')
 const zhCN = ref(zh_CN)
@@ -57,36 +57,46 @@ onMounted(() => {
   })
   // 监听下载进度
   window.electron.on('download-video-status', async ({ id, status, progress }: { id: string, status: number, progress: number }) => {
-    const task = store.taskStore(pinia).getTask(id) ? JSON.parse(JSON.stringify(store.taskStore(pinia).getTask(id))) : null
+    const tempTask = store.taskStore(pinia).getTask(id)
+    const task = tempTask
+      ? JSON.parse(JSON.stringify(tempTask))
+      : null
     // 成功和失败 更新 pinia electron-store，减少正在下载数；检查taskList是否有等待中任务，有则下载
-    if (task && (status === 0 || status === 5)) {
+    if (task && [STATUS.COMPLETED, STATUS.FAIL].includes(status)) {
       window.log.info(`${id} ${status}`)
       let size = -1
-      if (status === 0) {
+      if (status === STATUS.COMPLETED) {
         size = await window.electron.getVideoSize(id)
       }
-      store.taskStore(pinia).setTask([{ ...task, status, progress, size }])
+      store.taskStore(pinia).setTask([{ ...task, status, progress, size }], false)
       store.baseStore(pinia).reduceDownloadingTaskCount(1)
       // 检查下载
       const taskList = store.taskStore(pinia).taskList
       let allowDownload: TaskData[] = []
       taskList.forEach((value) => {
-        if (value.status === 4) allowDownload.push(JSON.parse(JSON.stringify(value)))
+        if (value.status === STATUS.PENDING) {
+          allowDownload.push(JSON.parse(JSON.stringify(value)))
+        }
       })
       allowDownload = addDownload(allowDownload)
       let count = 0
       for (const key in allowDownload) {
         const item = allowDownload[key]
-        if (item.status === 1) {
+        if (item.status === STATUS.PLAN_START) {
           window.electron.downloadVideo(item)
           count += 1
         }
-        await sleep(300)
+        // await sleep(300)
       }
       store.baseStore(pinia).addDownloadingTaskCount(count)
     }
     // 视频下载中 音频下载中 合成中 只更新pinia
-    if (task && (status === 1 || status === 2 || status === 3)) {
+    if (task && [
+      STATUS.PLAN_START,
+      STATUS.VIDEO_DOWNLOADING,
+      STATUS.AUDIO_DOWNLOADING,
+      STATUS.MERGING
+    ].includes(status)) {
       store.taskStore(pinia).setTaskEasy([{ ...task, status, progress }])
     }
   })

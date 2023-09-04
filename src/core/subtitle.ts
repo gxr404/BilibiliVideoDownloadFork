@@ -1,5 +1,6 @@
-import UA from '../assets/data/ua'
+import { randUserAgent } from '../utils'
 import { Subtitle } from '../type'
+
 const got = require('got')
 const fs = require('fs-extra')
 
@@ -13,7 +14,7 @@ export const downloadSubtitle = (fileName: string, list: Subtitle[]) => {
 const getSubtitleData = async (url: string, path: string) => {
   const { body: { body } } = await got(`https:${url}`, {
     headers: {
-      'User-Agent': `${UA}`
+      'User-Agent': randUserAgent()
     },
     responseType: 'json'
   })

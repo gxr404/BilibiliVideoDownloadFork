@@ -45,7 +45,9 @@ export interface Page {
   bvid: string,
   cid: number,
   duration: string,
-  page: number
+  page: number,
+  // 合集名称
+  collectionName?: string
 }
 
 export interface Subtitle {

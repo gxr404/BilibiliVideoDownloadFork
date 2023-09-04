@@ -1,6 +1,6 @@
 {
   "name": "bilibilivideodownload",
-  "version": "3.3.3",
+  "version": "0.0.1",
   "private": true,
   "author": "wangyu <wangyu@wangyu.link>",
   "description": "欢迎使用BilibiliVideoDownload",
@@ -25,12 +25,13 @@
     "ffmpeg-static": "^5.0.0",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^10.1.0",
-    "got": "^11.8.3",
+    "got": "^11.8.6",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.3",
     "pinia": "^2.0.13",
     "protobufjs": "^6.11.3",
     "qrcode": "^1.5.0",
+    "user-agents": "^1.0.1444",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3"
   },

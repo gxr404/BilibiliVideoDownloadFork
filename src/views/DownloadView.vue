@@ -9,20 +9,28 @@
       <div class="left custom-scroll-bar" ref="left">
         <div
           v-for="[key, value] in taskList" :key="key"
-          :class="['fr', 'download-item', selected.includes(key) ? 'active' : '']"
+          :class="['fr', 'download-item',Number(value.status)===STATUS.FAIL && 'error-bg', selected.includes(key) ? 'active' : '']"
           @click.left.exact="switchItem(key)"
           @click.ctrl.exact="multiSelect(key)"
           @click.meta.exact="multiSelect(key)"
           @click.shift.exact="rangeSelect(key)"
-          @click.right="showContextmenu()">
+          @click.right="showContextmenu(key)">
           <div class="img fr ac">
             <img :src="value.cover" :alt="value.title">
           </div>
           <div class="content fc jsb">
             <div class="ellipsis-1">{{ value.title }}</div>
-            <div>状态：<span class="text-active">{{ formatDownloadStatus(value.status, 'label') }}</span></div>
-            <div>
-              <a-progress :percent="value.progress" :status="formatDownloadStatus(value.status, 'value')" strokeColor="#fb7299"></a-progress>
+            <div>状态：<span :class="['text-active', Number(value.status)===STATUS.FAIL && 'error']">{{ formatDownloadStatus(value.status, 'label') }}</span></div>
+            <div class="fx">
+              <div class="process-bar">
+                <a-progress
+                  :percent="value.progress"
+                  :status="formatDownloadStatus(value.status, 'value')"
+                  :strokeColor="Number(value.status)===STATUS.FAIL ? '#ff0000' :'#fb7299'" />
+              </div>
+              <div class="reload" v-if="Number(value.status)===STATUS.FAIL" @click="reloadBtnClick(key)">
+                <ReloadOutlined />
+              </div>
             </div>
           </div>
         </div>
@@ -51,17 +59,15 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, toRaw } from 'vue'
-import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import downloadStatus from '../assets/data/status'
+import { downloadStatusMap, STATUS } from '../assets/data/status'
 import { storeToRefs } from 'pinia'
 import { store } from '../store'
 import { qualityMap } from '../assets/data/quality'
 import { checkUrl, checkUrlRedirect, parseHtml, getDownloadList, addDownload } from '../core/bilibili'
-import { sleep } from '../utils'
+import { ReloadOutlined } from '@ant-design/icons-vue'
 
-const route = useRoute()
 const { taskList, rightTask, taskListArray, rightTaskId } = storeToRefs(store.taskStore())
 const selected = ref<string[]>([])
 const left = ref<any>(null)
@@ -71,7 +77,7 @@ const openBrowser = (url: string) => {
 }
 
 const formatDownloadStatus = (status: number, type: string) => {
-  return downloadStatus[status][type]
+  return downloadStatusMap[status][type]
 }
 
 const formatQuality = (quality: number) => {
@@ -108,12 +114,21 @@ const rangeSelect = (key: string) => {
   }
   selected.value = []
   for (let idx = start; idx <= end; idx++) {
-    selected.value.push(taskListArray[idx][0])
+    selected.value.push(taskListArray.value[idx][0])
   }
 }
 
-const showContextmenu = async () => {
-  const res = await window.electron.showContextmenu('download')
+const showContextmenu = async (key: string) => {
+  const isSelectKey = selected.value.includes(key)
+  if (!isSelectKey) {
+    switchItem(key)
+  }
+  let res = ''
+  try {
+    res = await window.electron.showContextmenu('download')
+  } catch (e) {
+    console.log(e)
+  }
   console.log(res)
   if (res === 'open') {
     openDir()
@@ -129,7 +144,7 @@ const showContextmenu = async () => {
 }
 
 const playVideo = () => {
-  if (rightTask.value.status === 0) {
+  if (rightTask.value.status === STATUS.COMPLETED) {
     window.electron.openPath(rightTask.value.filePathList[0])
   }
 }
@@ -147,28 +162,32 @@ const reloadDownload = async () => {
     if (task) selectedTask.push(JSON.parse(JSON.stringify(task)))
   })
   selectedTask = selectedTask.map(item => ({
-    url: item.url,
-    quality: item.quality,
+    ...item,
     curPage: item.page.find((it: any) => it.cid === item.cid) ? item.page.find((it: any) => it.cid === item.cid).page : 0
   }))
-  for (const key in selectedTask) {
-    const item = selectedTask[key]
-    if (!item.curPage) continue
-    const videoType = checkUrl(item.url)
-    const { body, url } = await checkUrlRedirect(item.url)
-    const videoInfo = await parseHtml(body, videoType, url)
-    if (videoInfo === -1) continue
-    // 当前list只会存在一项
-    const list = await getDownloadList(videoInfo, [item.curPage], item.quality)
-    const taskList = addDownload(list)
-    store.taskStore().setTask(taskList)
-    // 可以下载
-    if (taskList[0].status === 1) {
-      window.electron.downloadVideo(taskList[0])
-      store.baseStore().addDownloadingTaskCount(1)
+  try {
+    for (const key in selectedTask) {
+      const item = selectedTask[key]
+      if (!item.curPage) continue
+      const videoType = checkUrl(item.url)
+      const { body, url } = await checkUrlRedirect(item.url)
+      const videoInfo = await parseHtml(body, videoType, url)
+      if (videoInfo === -1) continue
+      // 当前list只会存在一项
+      const list = await getDownloadList(videoInfo, [item.curPage], item.quality, true, item)
+      const taskList = addDownload(list)
+      store.taskStore().setTask(taskList)
+      // 可以下载
+      if (taskList[0].status === STATUS.PLAN_START) {
+        window.electron.downloadVideo(taskList[0])
+        store.baseStore().addDownloadingTaskCount(1)
+      }
+      // await sleep(300)
     }
-    await sleep(300)
+  } catch (e: any) {
+    message.error(e.toString())
   }
+
   loading()
 }
 
@@ -197,7 +216,7 @@ const deleteVideos = async () => {
   // 删除文件
   if (checkboxChecked) window.electron.deleteVideos(filelist)
   message.success('任务已删除')
-  if (taskListArray.value && taskListArray.value[0]) switchItem(taskListArray[0][0])
+  if (taskListArray.value && taskListArray.value[0]) switchItem(taskListArray.value[0][0])
 }
 
 const selectAll = () => {
@@ -220,6 +239,11 @@ onMounted(() => {
   })
 })
 
+function reloadBtnClick (key: string) {
+  switchItem(key)
+  reloadDownload()
+}
+
 </script>
 
 <style scoped lang="less">
@@ -240,6 +264,9 @@ onMounted(() => {
     .download-item{
       border-bottom: 1px solid #eeeeee;
       cursor: pointer;
+      &.error-bg{
+        background-color: rgba(0, 0, 0, 0.2);
+      }
       &.active{
         background: rgba(251, 114, 153, 0.2);
       }
@@ -263,6 +290,17 @@ onMounted(() => {
         flex: none;
         width: 364px;
         padding: 8px;
+        .fx {
+          display: flex;
+        }
+        .process-bar {
+          width: 100%;
+        }
+        .reload {
+          width: 20px;
+          text-align: center;
+          color: rgb(251, 114, 153);
+        }
       }
     }
   }
@@ -300,6 +338,10 @@ onMounted(() => {
         width: 80px;
       }
     }
+  }
+  .error {
+    color: #ff0000;
+    font-weight: bold;
   }
 }
 :deep(.ant-progress-status-success .ant-progress-text){
