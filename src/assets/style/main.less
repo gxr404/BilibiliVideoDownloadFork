@@ -1,0 +1,41 @@
+@import './common/common.less';
+
+html,body{
+  margin: 0px;
+  padding: 0px;
+}
+.is-full{
+  display: flex;
+  flex-direction: column;
+}
+.custom-drawer-scroll-bar{
+  .ant-drawer-body{
+    &::-webkit-scrollbar{
+      display: none;
+    }
+  }
+}
+.custom-drawer-footer-placeholder{
+  position: relative;
+  z-index: 4;
+  height: 53px;
+}
+.custom-modal-padding{
+  .ant-modal-body{
+    padding: 10px 16px;
+  }
+}
+
+.custom-scroll-bar{
+  &::-webkit-scrollbar {
+    width: 10px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    width: 10px;
+    height: 30px;
+    background-color: #dddddd;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+}
