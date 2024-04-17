@@ -320,7 +320,7 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
     responseType: 'json'
   }
   const { body: { data: { accept_quality, dash: { video, audio } } }, headers: { 'set-cookie': responseCookies } } = await window.electron.got(
-    `https://api.bilibili.com/x/player/playurl?cid=${cid}&bvid=${bvid}&qn=127&type=&otype=json&fourk=1&fnver=0&fnval=80&session=68191c1dc3c75042c6f35fba895d65b0`,
+    `https://api.bilibili.com/x/player/wbi/playurl?cid=${cid}&bvid=${bvid}&qn=127&type=&otype=json&fourk=1&fnver=0&fnval=80&session=68191c1dc3c75042c6f35fba895d65b0`,
     config
   )
   // 保存返回的cookies
@@ -355,7 +355,7 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
   }
   const query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
   const { body: { data }, headers: { 'set-cookie': responseCookies } } = await window.electron.got(
-    `https://api.bilibili.com/x/player/playurl?${query}`,
+    `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
     config
   )
   const { dash } = data

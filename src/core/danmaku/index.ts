@@ -78,7 +78,8 @@ export class JsonDanmaku {
     const segments = await Promise.all(new Array(total).fill(0).map(async (_, index) => {
       let buffer: any
       try {
-        buffer = await window.electron.gotBuffer(`https://api.bilibili.com/x/v2/dm/web/seg.so?type=1&oid=${this.cid}&segment_index=${index + 1}`, gotConfig)
+        const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?type=1&oid=${this.cid}&segment_index=${index + 1}`
+        buffer = await window.electron.gotBuffer(danmaAPI, gotConfig)
       } catch (error) {
         throw new Error('获取弹幕信息失败')
       }
@@ -140,6 +141,7 @@ export const downloadDanmaku = async (cid: number, title: string, path: string) 
     const str = await convertToAssFromJson(danmaku, title)
     window.electron.saveDanmukuFile(str, path)
   } catch (error: any) {
+    // TODO: error index out of range: 3 + 99 > 39
     message.error(`弹幕下载错误：${error.message}`)
   }
 }

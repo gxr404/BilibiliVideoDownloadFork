@@ -111,15 +111,19 @@ const openBrowser = (url: string):void => {
   window.electron.openBrowser(url)
 }
 
+const generateQRcodeAPI = 'https://passport.bilibili.com/x/passport-login/web/qrcode/generate'
 const createQrcode = async () => {
-  const { body } = await window.electron.got('http://passport.bilibili.com/qrcode/getLoginUrl', { responseType: 'json' })
+  const { body } = await window.electron.got(generateQRcodeAPI, {
+    responseType: 'json'
+  })
+
   const qrcode = await qrCode.toDataURL(body.data.url, {
     margin: 0,
     errorCorrectionLevel: 'H',
     width: 400
   })
   imageBase64.value = qrcode
-  oauthKey.value = body.data.oauthKey
+  oauthKey.value = body.data.qrcode_key || ''
   // 开始倒计时
   countDown.value = 180
   if (timer) {
@@ -135,29 +139,47 @@ const createQrcode = async () => {
   }, 1000)
 }
 
+const QRCodeAPI = 'https://passport.bilibili.com/x/passport-login/web/qrcode/poll'
 const checkScanStatus = (oauthKey: string) => {
   run(oauthKey)
   async function run (oauthKey: string) {
     if (!isCheck.value) return
-    const { body } = await window.electron.got('http://passport.bilibili.com/qrcode/getLoginInfo', {
-      method: 'POST',
+    const { body } = await window.electron.got(QRCodeAPI, {
+      method: 'GET',
       responseType: 'json',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      form: { oauthKey }
+      searchParams: {
+        qrcode_key: oauthKey
+      }
+    }).catch((e:any) => {
+      console.log(e)
     })
-    console.log(body)
-    if (!body.status) {
-      if (body.data === -4) {
+    const defaultData = {
+      code: -999999
+    }
+    const {
+      data = defaultData
+    } = body
+    console.log(data)
+    // 非扫码登录成功
+    if (data.code !== 0) {
+      //  86101：未扫码
+      if (data.code === 86101) {
         scanStatus.value = 0
       }
-      if (body.data === -5) {
+      // 86090：二维码已扫码未确认
+      if (body.data === 86090) {
         scanStatus.value = 1
       }
       setTimeout(() => {
         run(oauthKey)
       }, 3000)
+      // 0：扫码登录成功
+      // 86038：二维码已失效
+      // 86090：二维码已扫码未确认
+      // 86101：未扫码
       return
     }
     // 获取SESSDATA
