@@ -60,6 +60,7 @@ const download = async () => {
     loading.value = false
     return
   }
+  console.log('解析视频类型:', videoType)
   // 检查登陆状态
   if (store.baseStore().allowLogin) {
     const status = await checkLogin(store.settingStore().SESSDATA)

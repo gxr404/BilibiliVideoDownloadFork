@@ -134,22 +134,32 @@ const checkLogin = async (SESSDATA: string) => {
 
 // 检查url合法
 const checkUrl = (url: string) => {
-  const mapUrl = {
-    'video/av': 'BV',
-    'video/BV': 'BV',
-    'play/ss': 'ss',
-    'play/ep': 'ep'
-  }
-  let flag = false
-  for (const key in mapUrl) {
-    if (url.includes(key)) {
-      flag = true
-      return mapUrl[key]
+  const mapUrl = [
+    // url 带有video/av 或 video/BV
+    {
+      reg: /.*(video\/BV|video\/av)/,
+      type: 'BV'
+    },
+    // url 带有play/ss
+    {
+      reg: /.*play\/ss/,
+      type: 'ss'
+    },
+    // url 带有play/ep
+    {
+      reg: /.*play\/ep/,
+      type: 'ep'
+    },
+    {
+      // url 带有 list/数字
+      reg: /.*list\/.*/,
+      type: 'list'
     }
-  }
-  if (!flag) {
-    return ''
-  }
+  ]
+  const findType = mapUrl.find(item => {
+    return item.reg.test(url)
+  })
+  return findType ? findType.type : ''
 }
 
 // 检查url是否有重定向
@@ -179,6 +189,8 @@ const parseHtml = (html: string, type: string, url: string) => {
       return parseSS(html)
     case 'ep':
       return parseEP(html, url)
+    case 'list':
+      return parseList(html, url)
     default:
       return -1
   }
@@ -229,6 +241,64 @@ const parseBV = async (html: string, url: string) => {
     }
     console.log('bv')
     console.log(obj)
+    return obj
+  } catch (error: any) {
+    throw new Error(error)
+  }
+}
+
+const parseList = async (html: string, url: string) => {
+  try {
+    // const videoInfo = html.match(/\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)/)
+    const videoInfo = html.match(/<script>window\.__INITIAL_STATE__=([\s\S]*?);\(function\(\)/)
+    if (!videoInfo) throw new Error(`parse bv error ${url}`)
+    const { videoData, resourceList, playlist, mediaListInfo } = JSON.parse(videoInfo[1])
+    console.log(videoData)
+    // 获取视频下载地址
+    let acceptQuality = null
+    try {
+      let downLoadData: any = html.match(/\<script\>window\.\_\_playinfo\_\_\=([\s\S]*?)\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=/)
+      if (!downLoadData) throw new Error(`parse bv error ${url}`)
+      downLoadData = JSON.parse(downLoadData[1])
+      acceptQuality = {
+        accept_quality: downLoadData.data.accept_quality,
+        video: downLoadData.data.dash.video,
+        audio: downLoadData.data.dash.audio
+      }
+    } catch (error) {
+      acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
+      console.log('acceptQuality', acceptQuality)
+    }
+
+    // parseBVPageData()
+    const obj: VideoData = {
+      id: '',
+      title: videoData.title,
+      url,
+      bvid: videoData.bvid,
+      cid: videoData.cid,
+      cover: videoData.pic,
+      createdTime: -1,
+      quality: -1,
+      view: videoData.stat.view,
+      danmaku: videoData.stat.danmaku,
+      reply: videoData.stat.reply,
+      duration: formatSeconed(videoData.duration),
+      up: videoData.hasOwnProperty('staff') ? videoData.staff.map((item: any) => ({ name: item.name, mid: item.mid })) : [{ name: videoData.owner.name, mid: videoData.owner.mid }],
+      qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
+      // videoData page 如果存在 按 BVPageData解析
+      page: videoData?.pages?.length > 2
+        ? parseBVPageData(videoData, url)
+        : parseListPageData(url, resourceList, playlist, mediaListInfo),
+      subtitle: [],
+      video: acceptQuality.video ? acceptQuality.video.map((item: any) => ({ id: item.id, cid: videoData.cid, url: item.baseUrl })) : [],
+      audio: acceptQuality.audio ? acceptQuality.audio.map((item: any) => ({ id: item.id, cid: videoData.cid, url: item.baseUrl })) : [],
+      filePathList: [],
+      fileDir: '',
+      size: -1,
+      downloadUrl: { video: '', audio: '' }
+    }
+    console.log('parseList', obj)
     return obj
   } catch (error: any) {
     throw new Error(error)
@@ -354,10 +424,11 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     fnval: 80
   }
   const query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
-  const { body: { data }, headers: { 'set-cookie': responseCookies } } = await window.electron.got(
+  const res = await window.electron.got(
     `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
     config
   )
+  const { body: { data }, headers: { 'set-cookie': responseCookies } } = res
   const { dash } = data
   // 保存返回的cookies
   saveResponseCookies(responseCookies)
@@ -491,6 +562,24 @@ const parseEPPageData = (epList: any[]): Page[] => {
     bvid: item.bvid,
     url: item.share_url
   }))
+}
+
+// 处理 list 多p逻辑
+const parseListPageData = (url: string, resourceList: any[], playlist: any, mediaListInfo: any): Page[] => {
+  const { origin, pathname } = new URL(url)
+  const listURL = `${origin}${pathname}`
+
+  const page = resourceList.map((item, index) => ({
+    title: item?.pages?.[0]?.title,
+    // page: item.page,
+    page: index + 1,
+    collectionName: mediaListInfo.title,
+    duration: formatSeconed(item.duration),
+    cid: item?.pages?.[0]?.id,
+    bvid: item.bv_id,
+    url: `${listURL}?sid=${playlist.id}&oid=${item.id}&bvid=${item.bv_id}`
+  }))
+  return page
 }
 
 // 获取码率最高的audio

@@ -7,10 +7,12 @@ import { XmlDanmaku } from './xml-danmaku'
 import { store, pinia } from '../../store'
 import { randUserAgent } from '../../utils'
 
-const gotConfig = {
-  headers: {
-    'User-Agent': randUserAgent(),
-    cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
+function getGotConfig () {
+  return {
+    headers: {
+      'User-Agent': randUserAgent(),
+      cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
+    }
   }
 }
 
@@ -63,7 +65,7 @@ export class JsonDanmaku {
   async fetchInfo () {
     let viewBuffer: any
     try {
-      viewBuffer = await window.electron.gotBuffer(`https://api.bilibili.com/x/v2/dm/web/view?type=1&oid=${this.cid}`, gotConfig)
+      viewBuffer = await window.electron.gotBuffer(`https://api.bilibili.com/x/v2/dm/web/view?type=1&oid=${this.cid}`, getGotConfig())
     } catch (error) {
       throw new Error('获取弹幕信息失败')
     }
@@ -79,7 +81,7 @@ export class JsonDanmaku {
       let buffer: any
       try {
         const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?type=1&oid=${this.cid}&segment_index=${index + 1}`
-        buffer = await window.electron.gotBuffer(danmaAPI, gotConfig)
+        buffer = await window.electron.gotBuffer(danmaAPI, getGotConfig())
       } catch (error) {
         throw new Error('获取弹幕信息失败')
       }
@@ -87,7 +89,15 @@ export class JsonDanmaku {
         console.error(new Error(`弹幕片段${index + 1}下载失败`))
         return []
       }
+      const resStr = new TextDecoder().decode(buffer)
+      // 正常返回的是 弹幕的字符串 无法json parse
+      // 如果返回-352则 风控校验失败 (UA 或 wbi 参数不合法)
+      if (resStr.includes('-352')) {
+        console.error('接口返回:', JSON.parse(resStr))
+        throw new Error(`弹幕片段${index + 1}下载失败: 获取弹幕信息失败 code -352`)
+      }
       const result = await decodeDanmakuSegment(buffer)
+      // console.log(result)
       return result.elems ?? []
     }))
     this.jsonDanmakus = segments.flat().sort(ascendingSort(it => it.progress))
@@ -141,6 +151,9 @@ export const downloadDanmaku = async (cid: number, title: string, path: string) 
     const str = await convertToAssFromJson(danmaku, title)
     window.electron.saveDanmukuFile(str, path)
   } catch (error: any) {
+    console.error('error', error)
+    // webpack://bilibilivideodownloadFork/./node_modules/protobufjs/src/reader.js?e5c5
+    // index out of range:
     // TODO: error index out of range: 3 + 99 > 39
     message.error(`弹幕下载错误：${error.message}`)
   }

@@ -275,6 +275,9 @@ export const proto = {
 const decode = lodash.curry(async (type: string, buffer: Buffer) => {
   const root = protobuf.Root.fromJSON(proto)
   const reply = root.lookupType(type)
+  // webpack://bilibilivideodownloadFork/./node_modules/protobufjs/src/reader.js?e5c5
+  // index out of range:
+  // TODO: error index out of range: 3 + 99 > 39
   const message = reply.decode(buffer)
   return reply.toObject(message)
 })
