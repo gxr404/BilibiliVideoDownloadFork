@@ -27,6 +27,14 @@
 - [ ] 🤔 下载番剧视频(待定还不知是否做得到)
 - [ ] 🤔 暂停/恢复下载
 
+## 常见问题
+
+打开显示「“xxxx”已损坏，无法打开。 您应该将它移到废纸篓。」
+
+```bash
+sudo xattr -d com.apple.quarantine /Applications/bilibilivideodownloadFork.app
+```
+
 ## 注意
 
 - 软件不支持付费视频和地区限制视频，可能会报错
