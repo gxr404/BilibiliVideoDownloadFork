@@ -53,7 +53,7 @@ jobs:
       - name: Build mac app
         if: matrix.os == 'macos-latest'
         run: |
-          npm run electron:build
+          npm run electron:build --x64 --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
