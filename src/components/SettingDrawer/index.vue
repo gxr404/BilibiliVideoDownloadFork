@@ -114,6 +114,7 @@ const openDirDialog = () => {
 const quitLogin = () => {
   store.baseStore().setLoginStatus(0)
   store.settingStore().setSESSDATA('')
+  store.settingStore().setFace('')
 }
 
 defineExpose({

@@ -1,32 +1,87 @@
 <template>
   <a-config-provider :locale="zhCN">
-    <TitleBar
-      title="BilibiliVideoDownload"
-      :isBackground="false"
-      :isMinimizable="true"
-      :isMaximizable="false"
-      @onClose="onClose"
-      @onMinimize="onMinimize"
-    />
-    <TabBar />
+    <!-- <TabBar /> -->
     <CheckUpdate ref="checkUpdate" />
-    <router-view/>
+    <div class="warp">
+      <TitleBar
+        title="BilibiliVideoDownload"
+        :isBackground="false"
+        :isMinimizable="true"
+        :isMaximizable="false"
+        @onClose="onClose"
+        @onMinimize="onMinimize"
+      />
+      <div class="content">
+        <div class="sidebar">
+          <div class="top-menu">
+            <div :class="['item', route.name === 'home' ? 'active' : '']">
+              <HomeOutlined :style="{fontSize: '20px'}" @click="goHome()" />
+            </div>
+            <div :class="['item', route.name === 'download' ? 'active' : '']">
+              <DownloadOutlined :style="{fontSize: '20px'}" @click="goDownloadList()" />
+            </div>
+          </div>
+          <div class="menu">
+            <div class="item">
+              <UserOutlined v-if="store.baseStore().loginStatus === 0" :style="{fontSize: '22px'}" @click="login()" />
+              <div v-else class="user-face">
+                <a-popconfirm
+                  title="你确定要退出登录吗?"
+                  ok-text="是"
+                  cancel-text="否"
+                  placement="right"
+                  @confirm="quitLogin"
+                >
+                  <img :src="store.settingStore().face" alt="userFace">
+                </a-popconfirm>
+              </div>
+
+            </div>
+            <div class="item">
+              <SettingOutlined :style="{fontSize: '22px'}" @click="settingDrawer.open()" />
+            </div>
+            <div class="item">
+              <InfoCircleOutlined :style="{fontSize: '22px'}" @click="userModal.toogleVisible()" />
+            </div>
+          </div>
+        </div>
+        <router-view/>
+      </div>
+    </div>
+
+    <UserModal ref="userModal" />
+    <SettingDrawer ref="settingDrawer" />
+    <LoginModal ref="loginModal" />
+
   </a-config-provider>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import zh_CN from 'ant-design-vue/es/locale/zh_CN'
+import { UserOutlined, HomeOutlined, DownloadOutlined, SettingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
 import TitleBar from './components/TitleBar/index.vue'
 import TabBar from './components/TabBar/index.vue'
 import CheckUpdate from './components/CheckUpdate/index.vue'
-import zh_CN from 'ant-design-vue/es/locale/zh_CN'
-import dayjs from 'dayjs'
-import 'dayjs/locale/zh-cn'
 import { pinia, store } from './store'
 import { checkLogin, addDownload } from './core/bilibili'
 import { downloadDanmaku } from './core/danmaku'
 import { SettingData, TaskData, TaskList } from './type'
 import { STATUS } from './assets/data/status'
+import UserModal from './components/UserModal/index.vue'
+import LoginModal from './components/LoginModal/index.vue'
+import SettingDrawer from './components/SettingDrawer/index.vue'
+import { useRoute, useRouter } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const settingDrawer = ref<any>(null)
+const userModal = ref<any>(null)
+const loginModal = ref<any>(null)
+const isLogin = ref(false)
 
 dayjs.locale('zh-cn')
 const zhCN = ref(zh_CN)
@@ -40,12 +95,34 @@ const onClose = () => {
   window.electron.closeApp()
 }
 
+function goHome () {
+  router.push({ name: 'home' })
+}
+
+function goDownloadList () {
+  router.push({ name: 'download' })
+}
+
+function login () {
+  console.log(loginModal.value)
+  loginModal.value.open()
+}
+function quitLogin () {
+  store.baseStore().setLoginStatus(0)
+  store.settingStore().setSESSDATA('')
+  store.settingStore().setFace('')
+}
+
 onMounted(() => {
   // 初始化pinia数据
   window.electron.once('init-store', async ({ setting, taskList }: { setting: SettingData, taskList: TaskData[] }) => {
     store.settingStore(pinia).setSetting(setting)
-    const loginStatus = await checkLogin(store.settingStore(pinia).SESSDATA)
+    const { status: loginStatus, face } = await checkLogin(store.settingStore(pinia).SESSDATA)
     store.baseStore(pinia).setLoginStatus(loginStatus)
+    if (loginStatus !== 0) {
+      isLogin.value = true
+      store.settingStore().setFace(face)
+    }
     const taskMap: TaskList = new Map()
     for (const key in taskList) {
       const task = taskList[key]
@@ -110,4 +187,74 @@ onMounted(() => {
 </script>
 
 <style lang="less" scoped>
+.warp {
+  display: flex;
+  height: 100vh;
+  flex-wrap: wrap;
+}
+.content {
+  display: flex;
+  margin-top: -28px;
+  box-sizing: border-box;
+  padding-top: 28px;
+  height: 100%;
+  width: 100%;
+}
+.sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  width: 66px;
+  height: 100%;
+  background-color: #1f2022;
+  .top-menu {
+    width: 100%;
+    .item {
+      padding-top: 20px;
+    }
+  }
+  .menu {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-content: flex-end;
+    flex-wrap: wrap;
+    .item {
+      padding-bottom: 20px;
+    }
+  }
+  .item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a1a5ad;
+    &:hover {
+      color: @primary-color;
+    }
+    &.active {
+      color: @primary-color;
+    }
+  }
+  .user-face {
+    width: 24px;
+    height: 24px;
+    overflow: hidden;
+    border-radius: 50%;
+    cursor: pointer;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+    &:hover {
+      border: 1px solid @primary-color;
+    }
+    img {
+      width: 100%;
+    }
+  }
+
+}
+
 </style>

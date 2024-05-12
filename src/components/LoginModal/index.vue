@@ -13,10 +13,13 @@
     <a-tabs v-model:activeKey="activeTab" centered>
       <a-tab-pane :key="1" tab="扫码登录" force-render>
         <div class="login-box">
-          <div class="qr-modal" v-if="!countDown">
+          <div class="qr-modal" v-if="!countDown && !isQrLoad">
             <SyncOutlined class="refresh" @click="createQrcode" />
           </div>
-          <img :src="imageBase64" alt="" />
+          <div class="qr-modal" v-if="isQrLoad" >
+            <LoadingOutlined class="loading" />
+          </div>
+          <img v-if="imageBase64" :src="imageBase64" alt="" />
         </div>
       </a-tab-pane>
       <a-tab-pane :key="2" tab="手动输入">
@@ -41,7 +44,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { InfoCircleOutlined, SyncOutlined } from '@ant-design/icons-vue'
+import { InfoCircleOutlined, SyncOutlined, LoadingOutlined } from '@ant-design/icons-vue'
 import qrCode from 'qrcode'
 import { checkLogin } from '../../core/bilibili'
 import { store } from '../../store'
@@ -56,7 +59,9 @@ const imageBase64 = ref<string>('')
 const oauthKey = ref<string>('')
 const countDown = ref<number>(180)
 const isCheck = ref<boolean>(true)
+const isQrLoad = ref(false)
 let timer: any = null
+let checkStatusTimer: any = null
 
 const handleOkText = () => {
   const okText = ['未扫码', '已扫码', '确认登录']
@@ -69,8 +74,8 @@ const handleOkText = () => {
 
 const open = async () => {
   console.log('open')
-  await createQrcode()
   visible.value = true
+  await createQrcode()
   isCheck.value = true
   checkScanStatus(oauthKey.value)
 }
@@ -92,9 +97,10 @@ const login = async () => {
   // 储存SESSDATA
   store.settingStore().setSESSDATA(SESSDATA)
   // 验证SESSDATA
-  const status = await checkLogin(store.settingStore().SESSDATA)
+  const { status, face } = await checkLogin(store.settingStore().SESSDATA)
   // 储存LoginStatus
   store.baseStore().setLoginStatus(status)
+  store.settingStore().setFace(face)
   hide()
 }
 
@@ -104,6 +110,7 @@ const hide = () => {
     clearInterval(timer)
     timer = null
   }, 1000)
+  clearTimeout(checkStatusTimer)
   visible.value = false
 }
 
@@ -113,6 +120,7 @@ const openBrowser = (url: string):void => {
 
 const generateQRcodeAPI = 'https://passport.bilibili.com/x/passport-login/web/qrcode/generate'
 const createQrcode = async () => {
+  isQrLoad.value = true
   const { body } = await window.electron.got(generateQRcodeAPI, {
     responseType: 'json'
   })
@@ -123,6 +131,7 @@ const createQrcode = async () => {
     width: 400
   })
   imageBase64.value = qrcode
+  isQrLoad.value = false
   oauthKey.value = body.data.qrcode_key || ''
   // 开始倒计时
   countDown.value = 180
@@ -138,7 +147,6 @@ const createQrcode = async () => {
     countDown.value -= 1
   }, 1000)
 }
-
 const QRCodeAPI = 'https://passport.bilibili.com/x/passport-login/web/qrcode/poll'
 const checkScanStatus = (oauthKey: string) => {
   run(oauthKey)
@@ -173,9 +181,12 @@ const checkScanStatus = (oauthKey: string) => {
       if (body.data === 86090) {
         scanStatus.value = 1
       }
-      setTimeout(() => {
-        run(oauthKey)
-      }, 3000)
+      if (visible.value) {
+        checkStatusTimer = setTimeout(() => {
+          run(oauthKey)
+        }, 3000)
+      }
+
       // 0：扫码登录成功
       // 86038：二维码已失效
       // 86090：二维码已扫码未确认
@@ -202,19 +213,25 @@ defineExpose({
   align-items: center;
   height: 200px;
   .qr-modal{
-    position: absolute;
     width: 200px;
     height: 200px;
+    position: absolute;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(190, 190, 190, 0.8);
     z-index: 10;
     .refresh{
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      // position: absolute;
+      // top: 50%;
+      // left: 50%;
+      // transform: translate(-50%, -50%);
+      z-index: 11;
+      font-size: 24px;
+      color: @primary-color;
+    }
+    .loading {
       z-index: 11;
       font-size: 24px;
       color: @primary-color;

@@ -75,6 +75,9 @@ const getPlatform = () => {
   justify-content: space-between;
   align-items: center;
   color: #ffffff;
+  width: 100%;
+  background-color: #17181a;
+  z-index: 2;
   &.bg{
     background: @primary-color;
   }

@@ -8,7 +8,8 @@ export interface SettingData {
   isDanmaku: boolean,
   isFolder: boolean,
   isCover: boolean,
-  downloadingMaxSize: number
+  downloadingMaxSize: number,
+  face: string
 }
 
 export interface SettingDataEasy {

@@ -1,4 +1,4 @@
-import { formatSeconed, filterTitle, randUserAgent } from '../utils'
+import { formatSeconed, filterTitle, randUserAgent, getWbiKeys, encWbi } from '../utils'
 import { qualityMap } from '../assets/data/quality'
 import { customAlphabet } from 'nanoid'
 import alphabet from '../assets/data/alphabet'
@@ -111,6 +111,11 @@ const saveResponseCookies = (cookies: string[]) => {
   }
 }
 
+interface ICheckLoginRes {
+  status: 0 | 1 | 2,
+  face: ''
+}
+
 /**
  *
  * @returns 0: 游客，未登录 1：普通用户 2：大会员
@@ -123,13 +128,18 @@ const checkLogin = async (SESSDATA: string) => {
     },
     responseType: 'json'
   })
-  if (body.data.isLogin && !body.data.vipStatus) {
-    return 1
-  } else if (body.data.isLogin && body.data.vipStatus) {
-    return 2
-  } else {
-    return 0
+  const data: ICheckLoginRes = {
+    status: 0,
+    face: ''
   }
+  if (body.data.isLogin && !body.data.vipStatus) {
+    data.status = 1
+    data.face = body.data.face
+  } else if (body.data.isLogin && body.data.vipStatus) {
+    data.status = 2
+    data.face = body.data.face
+  }
+  return data
 }
 
 // 检查url合法
@@ -389,10 +399,37 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
     },
     responseType: 'json'
   }
-  const { body: { data: { accept_quality, dash: { video, audio } } }, headers: { 'set-cookie': responseCookies } } = await window.electron.got(
-    `https://api.bilibili.com/x/player/wbi/playurl?cid=${cid}&bvid=${bvid}&qn=127&type=&otype=json&fourk=1&fnver=0&fnval=80&session=68191c1dc3c75042c6f35fba895d65b0`,
+
+  const params = {
+    cid,
+    bvid,
+    qn: 127,
+    type: '',
+    otype: 'json',
+    fourk: 1,
+    fnver: 0,
+    fnval: 80,
+    session: '68191c1dc3c75042c6f35fba895d65b0'
+  }
+  let query = ''
+  if (!SESSDATA) {
+    const web_keys = await getWbiKeys('')
+    const img_key = web_keys.img_key
+    const sub_key = web_keys.sub_key
+    query = encWbi(params, img_key, sub_key)
+  } else {
+    query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+  }
+
+  const res = await window.electron.got(
+    `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
     config
   )
+  const { body, headers } = res
+  const accept_quality = body?.data?.accept_quality || []
+  const video = body.data?.dash?.video || []
+  const audio = body.data?.dash?.audio || []
+  const responseCookies = headers['set-cookie']
   // 保存返回的cookies
   saveResponseCookies(responseCookies)
   return {
@@ -410,10 +447,11 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     headers: {
       'User-Agent': randUserAgent(),
       // bfe_id必须要加
-      cookie: `SESSDATA=${SESSDATA};bfe_id=${bfeId}`
+      cookie: SESSDATA ? `SESSDATA=${SESSDATA};bfe_id=${bfeId}` : ''
     },
     responseType: 'json'
   }
+
   const params = {
     cid,
     bvid,
@@ -423,7 +461,16 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     fnver: 0,
     fnval: 80
   }
-  const query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+  let query = ''
+  // 未登录需要wbi签名
+  if (!SESSDATA) {
+    const web_keys = await getWbiKeys('')
+    const img_key = web_keys.img_key
+    const sub_key = web_keys.sub_key
+    query = encWbi(params, img_key, sub_key)
+  } else {
+    query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+  }
   const res = await window.electron.got(
     `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
     config

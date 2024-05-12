@@ -5,7 +5,7 @@ import { decodeDanmakuSegment, decodeDanmakuView } from './danmaku-segment'
 import { DanmakuConverterConfig, DanmakuConverter } from './danmaku-converter'
 import { XmlDanmaku } from './xml-danmaku'
 import { store, pinia } from '../../store'
-import { randUserAgent } from '../../utils'
+import { randUserAgent, getWbiKeys, encWbi } from '../../utils'
 
 function getGotConfig () {
   return {
@@ -77,10 +77,30 @@ export class JsonDanmaku {
     if (total === undefined) {
       throw new Error(`获取弹幕分页数失败: ${JSON.stringify(lodash.omit(view, 'flag'))}`)
     }
+    const SESSDATA = store.settingStore(pinia).SESSDATA
+    let img_key = ''
+    let sub_key = ''
+    if (!SESSDATA) {
+      const web_keys = await getWbiKeys('')
+      img_key = web_keys.img_key
+      sub_key = web_keys.sub_key
+    }
+
     const segments = await Promise.all(new Array(total).fill(0).map(async (_, index) => {
       let buffer: any
       try {
-        const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?type=1&oid=${this.cid}&segment_index=${index + 1}`
+        const params = {
+          type: 1,
+          oid: this.cid,
+          segment_index: index + 1
+        }
+        let query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+        if (!SESSDATA) {
+          query = encWbi(params, img_key, sub_key)
+        }
+        const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?${query}`
+        console.log('danmaAPI', danmaAPI)
+
         buffer = await window.electron.gotBuffer(danmaAPI, getGotConfig())
       } catch (error) {
         throw new Error('获取弹幕信息失败')

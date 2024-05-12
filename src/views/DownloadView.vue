@@ -249,9 +249,9 @@ function reloadBtnClick (key: string) {
 <style scoped lang="less">
 .container{
   box-sizing: border-box;
-  padding: 16px;
   position: relative;
-  height: calc(100vh - 28px);
+  flex: 1;
+  padding: 16px;
   &.bg-fff{
     background: #ffffff;
   }
@@ -288,7 +288,7 @@ function reloadBtnClick (key: string) {
       .content{
         box-sizing: border-box;
         flex: none;
-        width: 364px;
+        width: 332px;
         padding: 8px;
         .fx {
           display: flex;

@@ -105,7 +105,8 @@ const handleDownload = async () => {
 
 const open = (data: VideoData) => {
   const quality = userQuality[store.baseStore().loginStatus]
-  data.qualityOptions.filter((item: any) => quality.includes(item.value))
+  // 过滤掉 不合法的清晰度
+  data.qualityOptions = data.qualityOptions.filter((item: any) => quality.includes(item.value))
   videoInfo.value = data
   visible.value = true
   // 如果是单p，则默认选中
