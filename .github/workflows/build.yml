@@ -23,7 +23,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, 'ubuntu-latest']
+        # os: [windows-latest, macos-latest, 'ubuntu-latest']
+        # macos-13 is an intel runner, macos-14 is apple silicon
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
 
     # create steps
     steps:
@@ -50,10 +52,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build mac app
-        if: matrix.os == 'macos-latest'
+      - name: Build mac intl app
+        if: matrix.os == 'macos-13'
         run: |
-          npm run electron:build -- --x64 --arm64
+          npm run electron:build -- --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build mac arm app
+        if: matrix.os == 'macos-14'
+        run: |
+          npm run electron:build -- --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
