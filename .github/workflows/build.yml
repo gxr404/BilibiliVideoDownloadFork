@@ -79,8 +79,13 @@ jobs:
         run: |
           npx rimraf "dist_electron/!(*.exe)"
 
-      - name: cleanup artifacts for macos
-        if: matrix.os == 'macos-latest'
+      - name: cleanup artifacts for macos intel
+        if: matrix.os == 'macos-13'
+        run: |
+          npx rimraf "dist_electron/!(*.dmg)"
+
+      - name: cleanup artifacts for macos arm
+        if: matrix.os == 'macos-14'
         run: |
           npx rimraf "dist_electron/!(*.dmg)"
 
