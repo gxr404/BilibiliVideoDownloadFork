@@ -53,20 +53,23 @@
         <div class="mt8 pl16">弹幕：<span class="text-active">{{ rightTask.danmaku }}</span></div>
         <div class="mt8 pl16">评论：<span class="text-active">{{ rightTask.reply }}</span></div>
       </div>
+      <div class="clean-btn" @click="cleanAllCompleted">
+        <ClearOutlined />
+      </div>
     </template>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, toRaw } from 'vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { downloadStatusMap, STATUS } from '../assets/data/status'
 import { storeToRefs } from 'pinia'
 import { store } from '../store'
 import { qualityMap } from '../assets/data/quality'
 import { checkUrl, checkUrlRedirect, parseHtml, getDownloadList, addDownload } from '../core/bilibili'
-import { ReloadOutlined } from '@ant-design/icons-vue'
+import { ReloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
 
 const { taskList, rightTask, taskListArray, rightTaskId } = storeToRefs(store.taskStore())
 const selected = ref<string[]>([])
@@ -226,6 +229,38 @@ const selectAll = () => {
   })
 }
 
+async function cleanAllCompleted () {
+  const isConfirm = await showCleanConfirm()
+  if (!isConfirm) return
+  const completedList: string[] = []
+
+  taskList.value.forEach((item) => {
+    if (item.status === STATUS.COMPLETED) {
+      completedList.push(item.id)
+    }
+  })
+  console.log(completedList)
+  // 删除记录
+  store.taskStore().deleteTask(completedList)
+  if (taskListArray.value && taskListArray.value[0]) switchItem(taskListArray.value[0][0])
+}
+
+function showCleanConfirm () {
+  return new Promise((resolve) => {
+    Modal.confirm({
+      title: '清除所有已完成的任务?',
+      content: '不会影响已下载的本地文件',
+      icon: false,
+      onOk () {
+        resolve(true)
+      },
+      onCancel () {
+        resolve(false)
+      }
+    })
+  })
+}
+
 onMounted(() => {
   if (!rightTaskId.value) return
   switchItem(rightTaskId.value)
@@ -342,6 +377,27 @@ function reloadBtnClick (key: string) {
   .error {
     color: #ff0000;
     font-weight: bold;
+  }
+  .clean-btn {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid #eee;
+    color: #a1a5ad;
+    transition: all 0.1s;
+    box-shadow: 0 0 8px #eee;
+    &:hover {
+      color: @primary-color;
+      border-color: @primary-color;
+    }
   }
 }
 :deep(.ant-progress-status-success .ant-progress-text){
