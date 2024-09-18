@@ -61,7 +61,10 @@ module.exports = {
             // 主色
             'primary-color': '#fb7299',
             'link-color': '#fb7299',
-            'text-color': 'rgba(0, 0, 0, 0.65)'
+            'text-color': 'rgba(0, 0, 0, 0.65)',
+            'primary-color2': '#00AEEC',
+            'primary-color3': '#DFF6FD'
+
           }
         }
       }

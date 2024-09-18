@@ -34,6 +34,7 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
       const { video, audio } = await getDownloadUrl(currentCid, currentBvid, quality)
       downloadUrl.video = video
       downloadUrl.audio = audio
+      // throw new Error('获取视频下载地址错误')
     }
     // 获取字幕地址
     const subtitle = await getSubtitle(currentCid, currentBvid)
@@ -196,7 +197,8 @@ const parseHtml = (html: string, type: string, url: string) => {
     case 'BV':
       return parseBV(html, url)
     case 'ss':
-      return parseSS(html)
+      // return parseSS(html)
+      return parseEP(html, url)
     case 'ep':
       return parseEP(html, url)
     case 'list':
@@ -317,20 +319,51 @@ const parseList = async (html: string, url: string) => {
 
 const parseEP = async (html: string, url: string) => {
   try {
-    const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)\{var s\;/)
-    // const videoInfo = html.match(/\<script id="__NEXT_DATA__" type="application\/json"\>([\s\S]*?)\<\/script\>/)
-    if (!videoInfo) throw new Error('parse ep error')
-    const { h1Title, mediaInfo, epInfo, epList } = JSON.parse(videoInfo[1])
+    // const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)\{var s\;/)
+    const nextDataMatch = html.match(/\<script id="__NEXT_DATA__" type="application\/json"\>([\s\S]*?)\<\/script\>/)
+    if (!nextDataMatch) throw new Error('parse ep error')
+    const nextData = JSON.parse(nextDataMatch[1])
+
+    const playurlSSRData = html.match(/const playurlSSRData = ({[\s\S]*?}}}})\n\s*if \(playurlSSRData\) {/)
+    if (!playurlSSRData) throw new Error('parse ep error')
+
+    const __playinfo__ = JSON.parse(playurlSSRData[1])
+
+    // https://api.bilibili.com/pgc/view/web/ep/list?season_id=2308
+
+    const { video_info, view_info, play_view_business_info } = __playinfo__.result
+
+    const { ep_id } = view_info.report
+    // const { h1Title, mediaInfo, epInfo, epList } = {} as any
+    // const { epInfo, epList } = {} as any
+    const mediaInfo = nextData.props.pageProps.dehydratedState.queries[1].state.data
+    const epInfo = play_view_business_info.episode_info
+    const config = {
+      headers: {
+        'User-Agent': randUserAgent(),
+        cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
+      },
+      responseType: 'json'
+    }
+    const res = await window.electron.got(
+      `https://api.bilibili.com/pgc/view/web/ep/list?ep_id=${ep_id}`,
+      config
+    )
+    console.log('mediaInfo', mediaInfo)
+    const epList = res.body.result.episodes // ??
+    const h1Title = mediaInfo.title
     // 获取视频下载地址
     let acceptQuality = null
+    const downLoadData = __playinfo__.result.video_info
     try {
-      let downLoadData: any = html.match(/\<script\>window\.\_\_playinfo\_\_\=([\s\S]*?)\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=/)
-      if (!downLoadData) throw new Error('parse ep error')
-      downLoadData = JSON.parse(downLoadData[1])
+      // let downLoadData: any = html.match(/\<script\>window\.\_\_playinfo\_\_\=([\s\S]*?)\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=/)
+      // if (!downLoadData) throw new Error('parse ep error')
+      // downLoadData = JSON.parse(downLoadData[1])
+
       acceptQuality = {
-        accept_quality: downLoadData.data.accept_quality,
-        video: downLoadData.data.dash.video,
-        audio: downLoadData.data.dash.audio
+        accept_quality: downLoadData.accept_quality,
+        video: downLoadData.dash.video,
+        audio: downLoadData.dash.audio
       }
     } catch (error) {
       acceptQuality = await getAcceptQuality(epInfo.cid, epInfo.bvid)
@@ -341,16 +374,16 @@ const parseEP = async (html: string, url: string) => {
       url,
       bvid: epInfo.bvid,
       cid: epInfo.cid,
-      cover: `http:${mediaInfo.cover}`,
+      cover: mediaInfo.cover,
       createdTime: -1,
       quality: -1,
       view: mediaInfo.stat.views,
       danmaku: mediaInfo.stat.danmakus,
       reply: mediaInfo.stat.reply,
-      duration: formatSeconed(epInfo.duration / 1000),
-      up: [{ name: mediaInfo.upInfo.name, mid: mediaInfo.upInfo.mid }],
+      duration: formatSeconed(downLoadData.dash.duration / 1000),
+      up: mediaInfo.upInfo ? [{ name: mediaInfo.upInfo.name, mid: mediaInfo.upInfo.mid }] : [{ name: '', mid: '' }],
       qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
-      page: parseEPPageData(epList),
+      page: parseEPPageData(epList, h1Title),
       subtitle: [],
       video: acceptQuality.video ? acceptQuality.video.map((item: any) => ({ id: item.id, cid: epInfo.cid, url: item.baseUrl })) : [],
       audio: acceptQuality.audio ? acceptQuality.audio.map((item: any) => ({ id: item.id, cid: epInfo.cid, url: item.baseUrl })) : [],
@@ -475,6 +508,14 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
     config
   )
+  // 无视频可能是会员视频
+  if (String(res.body.code) === '-404') {
+    // throw new Error('无视频可能是会员视频')
+    return {
+      video: {},
+      audio: {}
+    }
+  }
   const { body: { data }, headers: { 'set-cookie': responseCookies } } = res
   const { dash } = data
   // 保存返回的cookies
@@ -511,8 +552,8 @@ const handleFilePathList = (page: number, title: string, videoInfo: VideoData, b
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
-  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}-${up}` : storeDownloadPath
-  const name = `${!page ? '' : `[P${page}]`}${filterTitle(`${title}-${up}-${bvid}-${id}`)}`
+  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}${up ? `-${up}` : ''}` : storeDownloadPath
+  const name = `${!page ? '' : `[P${page}]`}${filterTitle(`${title}${up ? `-${up}` : ''}-${bvid}-${id}`)}`
   const isFolder = store.settingStore().isFolder
   let pathList = [
     `${downloadPath}/${name}.mp4`,
@@ -540,9 +581,9 @@ const handleFileDir = (page: number, title: string, videoInfo: VideoData, bvid: 
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
-  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}-${up}` : storeDownloadPath
+  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}${up ? `-${up}` : ''}` : storeDownloadPath
 
-  const name = `${!page ? '' : `[P${page}]`}${filterTitle(`${title}-${up}-${bvid}-${id}`)}`
+  const name = `${!page ? '' : `[P${page}]`}${filterTitle(`${title}${up ? `-${up}` : ''}-${bvid}-${id}`)}`
   const isFolder = store.settingStore().isFolder
   return `${downloadPath}${isFolder ? `/${name}/` : ''}`
 }
@@ -600,14 +641,17 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
 }
 
 // 处理ep多p逻辑
-const parseEPPageData = (epList: any[]): Page[] => {
+const parseEPPageData = (epList: any[], collectionName: string): Page[] => {
+  // console.log(epList, collectionName)
   return epList.map((item, index) => ({
     title: item.share_copy,
     page: index + 1,
     duration: formatSeconed(item.duration / 1000),
     cid: item.cid,
     bvid: item.bvid,
-    url: item.share_url
+    url: item.share_url,
+    collectionName,
+    badge: item.badge || ''
   }))
 }
 

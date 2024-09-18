@@ -40,7 +40,12 @@
         </div>
       </div>
       <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac warp mt16">
-        <div v-for="(item, index) in videoInfo.page" :key="index" :class="['video-item', selected.includes(item.page) ? 'active' : '']" @click="toggle(item.page)">
+        <div
+          v-for="(item, index) in videoInfo.page" :key="index"
+          :class="['video-item', selected.includes(item.page) ? 'active' : '',
+          store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
+          @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
+          <span class="badge" v-if="item.badge=== '会员'">{{item.badge}}</span>
           <a-tooltip>
             <template #title>
               {{ item.title }}
@@ -82,7 +87,7 @@ const handleDownload = async () => {
   confirmLoading.value = true
   // 获取当前选中视频的下载数据
   const list = await getDownloadList(toRaw(videoInfo.value), toRaw(selected.value), quality.value)
-  console.log(list)
+  console.log('list-->', list)
   const taskList = addDownload(list)
   store.taskStore().setTask(taskList)
   let count = 0
@@ -120,12 +125,17 @@ const onAllSelectedChange = (e: any) => {
   selected.value = []
   if (e.target.checked) {
     videoInfo.value.page.forEach((element: any) => {
-      selected.value.push(element.page)
+      if (element.badge === '会员') {
+        if (store.baseStore().loginStatus === 2) selected.value.push(element.page)
+      } else {
+        selected.value.push(element.page)
+      }
     })
   }
 }
 
-const toggle = (page: number) => {
+const toggle = (page: number, disable: boolean) => {
+  if (disable) return
   const index = selected.value.indexOf(page)
   if (index === -1) {
     selected.value.push(page)
@@ -182,12 +192,36 @@ defineExpose({
     margin: 0px 18px 18px 0px;
     padding: 8px;
     cursor: pointer;
-    overflow: hidden;
+    // overflow: hidden;
+    border-radius: 6px;
     user-select: none;
+    position: relative;
+    &:hover {
+      background-color: @primary-color3;
+      border: 1px solid @primary-color2;
+      color: @primary-color2;
+    }
     &.active{
       color: #ffffff;
+      background: @primary-color2;
+      border: 1px solid @primary-color2;
+    }
+    &.disable {
+      cursor: no-drop;
+      color: #ddd;
+      background-color: #fff;
+      border: 1px solid #ddd;
+    }
+    .badge {
+      position: absolute;
+      font-size: 12px;
       background: @primary-color;
-      border: 1px solid @primary-color;
+      right: -1px;
+      top: -1px;
+      color:#ffffff;
+      padding: 0 4px;
+      border-bottom-left-radius: 10px;
+      border-top-right-radius: 6px;
     }
   }
 }
