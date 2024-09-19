@@ -380,7 +380,9 @@ const parseEP = async (html: string, url: string) => {
       view: mediaInfo.stat.views,
       danmaku: mediaInfo.stat.danmakus,
       reply: mediaInfo.stat.reply,
-      duration: formatSeconed(downLoadData.dash.duration / 1000),
+      // 非会员的账号读取会员视频时 读取不到dash
+      duration: formatSeconed(downLoadData?.dash?.duration / 1000),
+      // duration: formatSeconed(downLoadData.dash.duration / 1000),
       up: mediaInfo.upInfo ? [{ name: mediaInfo.upInfo.name, mid: mediaInfo.upInfo.mid }] : [{ name: '', mid: '' }],
       qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
       page: parseEPPageData(epList, h1Title),
