@@ -345,12 +345,32 @@ const parseEP = async (html: string, url: string) => {
       },
       responseType: 'json'
     }
-    const res = await window.electron.got(
+    const { body: epListBody } = await window.electron.got(
       `https://api.bilibili.com/pgc/view/web/ep/list?ep_id=${ep_id}`,
       config
     )
     console.log('mediaInfo', mediaInfo)
-    const epList = res.body.result.episodes // ??
+    let epList: any = []
+    if (Array.isArray(epListBody?.result?.episodes)) {
+      epList = epList.concat(epListBody?.result?.episodes)
+    }
+    if (Array.isArray(epListBody?.result?.section)) {
+      epListBody?.result?.section.forEach((item: any) => {
+        if (Array.isArray(item?.episodes)) {
+          // epList = epList.concat(item?.episodes)
+          item?.episodes.forEach((epItem: any) => {
+            console.log('epItem', epItem)
+            if (epItem.cid !== 0 && epItem.ep_id !== 0) {
+              epList.push({
+                ...epItem,
+                epTitle: item.title
+              })
+            }
+          })
+        }
+      })
+    }
+    // const epList = res.body.result.episodes // ??
     const h1Title = mediaInfo.title
     // 获取视频下载地址
     let acceptQuality = null
@@ -653,7 +673,8 @@ const parseEPPageData = (epList: any[], collectionName: string): Page[] => {
     bvid: item.bvid,
     url: item.share_url,
     collectionName,
-    badge: item.badge || ''
+    badge: item.badge || '',
+    epTitle: item.epTitle || ''
   }))
 }
 

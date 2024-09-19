@@ -46,6 +46,7 @@
           store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
           @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
           <span class="badge" v-if="item.badge=== '会员'">{{item.badge}}</span>
+          <span class="ep-title" v-if="item.epTitle !== ''">{{ item.epTitle }}</span>
           <a-tooltip>
             <template #title>
               {{ item.title }}
@@ -158,6 +159,7 @@ defineExpose({
 .video-modal{
   height: 260px;
   overflow-y: overlay;
+  padding-left: 12px;
   .video-info{
     height: 71.25px;
     .image{
@@ -222,6 +224,22 @@ defineExpose({
       padding: 0 4px;
       border-bottom-left-radius: 10px;
       border-top-right-radius: 6px;
+    }
+    .ep-title {
+      position: absolute;
+      font-size: 12px;
+      color: #ffffff;
+      background: @primary-color2;
+      top: -12px;
+      left: -10px;
+      padding: 0 4px;
+      border-radius: 4px;
+      max-width: 80px;
+      overflow: hidden;
+      height: 20px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }

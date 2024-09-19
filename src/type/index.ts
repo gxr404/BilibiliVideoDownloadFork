@@ -51,6 +51,7 @@ export interface Page {
   collectionName?: string
   // 徽章 视频需要vip的话该值会是“会员”
   badge?: string
+  epTitle?: string
 }
 
 export interface Subtitle {
