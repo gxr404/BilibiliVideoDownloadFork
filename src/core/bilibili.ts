@@ -27,13 +27,15 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
     const downloadUrl: DownloadUrl = { video: '', audio: '' }
     const videoUrl = videoInfo.video.find(item => item.id === quality && item.cid === currentCid)
     const audioUrl = getHighQualityAudio(videoInfo.audio)
+    let fixQuality = quality
     if (videoUrl && audioUrl) {
       downloadUrl.video = videoUrl.url
       downloadUrl.audio = audioUrl.url
     } else {
-      const { video, audio } = await getDownloadUrl(currentCid, currentBvid, quality)
+      const { video, audio, quality: realQuality } = await getDownloadUrl(currentCid, currentBvid, quality)
       downloadUrl.video = video
       downloadUrl.audio = audio
+      fixQuality = realQuality
       // throw new Error('获取视频下载地址错误')
     }
     // 获取字幕地址
@@ -57,7 +59,7 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
       id: taskId,
       title: currentPageData.title,
       url: currentPageData.url,
-      quality: quality,
+      quality: fixQuality || quality,
       duration: currentPageData.duration,
       createdTime: +new Date(),
       cid: currentCid,
@@ -534,8 +536,9 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
   if (String(res.body.code) === '-404') {
     // throw new Error('无视频可能是会员视频')
     return {
-      video: {},
-      audio: {}
+      video: '',
+      audio: '',
+      quality
     }
   }
   const { body: { data }, headers: { 'set-cookie': responseCookies } } = res
@@ -543,11 +546,20 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
   // 保存返回的cookies
   saveResponseCookies(responseCookies)
   const tempVideo = dash.video.find((item: any) => item.id === quality)
-  const video = tempVideo ? tempVideo.baseUrl : dash.video[0].baseUrl
+  let tempQuality = quality
+  // 自动降级视频清新度 取不到指定清晰度的视频，以返回数据的视频清晰度 第一项为准 如 4k视频 没有 dash.video[0]应该就是支持的最清晰的视频了
+  let video = ''
+  if (tempVideo) {
+    video = tempVideo.baseUrl
+  } else {
+    video = dash.video[0].baseUrl
+    tempQuality = dash.video[0].id
+  }
   const audio = getHighQualityAudio(dash.audio).baseUrl
   return {
     video,
-    audio
+    audio,
+    quality: tempQuality
   }
 }
 
