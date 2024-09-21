@@ -46,7 +46,7 @@
           store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
           @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
           <span class="badge" v-if="item.badge=== '会员'">{{item.badge}}</span>
-          <span class="ep-title" v-if="item.epTitle !== ''">{{ item.epTitle }}</span>
+          <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span>
           <a-tooltip>
             <template #title>
               {{ item.title }}
