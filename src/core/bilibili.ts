@@ -27,6 +27,9 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
     const downloadUrl: DownloadUrl = { video: '', audio: '' }
     const videoUrl = videoInfo.video.find(item => item.id === quality && item.cid === currentCid)
     const audioUrl = getHighQualityAudio(videoInfo.audio)
+    // console.log('videoInfo', videoInfo)
+    // console.log('audio url', audioUrl)
+    // await getDownloadUrl(currentCid, currentBvid, quality)
     let fixQuality = quality
     if (videoUrl && audioUrl) {
       downloadUrl.video = videoUrl.url
@@ -224,7 +227,7 @@ const parseBV = async (html: string, url: string) => {
       acceptQuality = {
         accept_quality: downLoadData.data.accept_quality,
         video: downLoadData.data.dash.video,
-        audio: downLoadData.data.dash.audio
+        audio: handleAudio(downLoadData.data.dash)
       }
     } catch (error) {
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
@@ -277,7 +280,7 @@ const parseList = async (html: string, url: string) => {
       acceptQuality = {
         accept_quality: downLoadData.data.accept_quality,
         video: downLoadData.data.dash.video,
-        audio: downLoadData.data.dash.audio
+        audio: handleAudio(downLoadData.data.dash)
       }
     } catch (error) {
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
@@ -385,7 +388,7 @@ const parseEP = async (html: string, url: string) => {
       acceptQuality = {
         accept_quality: downLoadData.accept_quality,
         video: downLoadData.dash.video,
-        audio: downLoadData.dash.audio
+        audio: handleAudio(downLoadData.dash)
       }
     } catch (error) {
       acceptQuality = await getAcceptQuality(epInfo.cid, epInfo.bvid)
@@ -485,7 +488,7 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
   const { body, headers } = res
   const accept_quality = body?.data?.accept_quality || []
   const video = body.data?.dash?.video || []
-  const audio = body.data?.dash?.audio || []
+  const audio = handleAudio(body.data?.dash) || []
   const responseCookies = headers['set-cookie']
   // 保存返回的cookies
   saveResponseCookies(responseCookies)
@@ -532,6 +535,8 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
     config
   )
+  // console.log('playurl', `https://api.bilibili.com/x/player/wbi/playurl?${query}`)
+  // console.log(res)
   // 无视频可能是会员视频
   if (String(res.body.code) === '-404') {
     // throw new Error('无视频可能是会员视频')
@@ -556,6 +561,7 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     tempQuality = dash.video[0].id
   }
   const audio = getHighQualityAudio(dash.audio).baseUrl
+  // console.log('audio url', audio)
   return {
     video,
     audio,
@@ -708,9 +714,40 @@ const parseListPageData = (url: string, resourceList: any[], playlist: any, medi
   return page
 }
 
+// 30216 64K
+// 30232 132K
+// 30280 192K
+// 30250 杜比全景声
+// 30251 Hi-Res无损
 // 获取码率最高的audio
 const getHighQualityAudio = (audioArray: any[]) => {
+  console.log(audioArray)
+  // 优先 Hi-Res无损
+  const hires = audioArray.find(item => item.id === 30251)
+  if (hires) return hires
+  // 优先 杜比全景声
+  const DolbyAtmos = audioArray.find(item => item.id === 30251)
+  if (DolbyAtmos) return DolbyAtmos
   return audioArray.sort((a, b) => b.id - a.id)[0]
+}
+
+// 统一处理audio 含盖 dolby 杜比全景声 和 flac  无损
+function handleAudio (dash: any) {
+  if (!Array.isArray(dash?.audio)) return []
+  let audio = [...dash.audio]
+  // dolby 杜比全景声
+  if (Array.isArray(dash?.dolby?.audio)) {
+    audio = audio.concat(dash.dolby?.audio)
+  } else if (Boolean(dash?.dolby?.audio) && typeof dash?.dolby?.audio === 'object') {
+    audio.push(dash.dolby?.audio)
+  }
+  // flac 无损
+  if (Array.isArray(dash?.flac?.audio)) {
+    audio = audio.concat(dash.flac?.audio)
+  } else if (Boolean(dash?.flac?.audio) && typeof dash?.flac?.audio === 'object') {
+    audio.push(dash.flac?.audio)
+  }
+  return audio
 }
 
 export {
