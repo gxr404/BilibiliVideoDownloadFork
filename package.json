@@ -11,7 +11,7 @@
     "electron:serve": "vue-cli-service electron:serve",
     "postinstall": "patch-package && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps",
-    "release:patch": "release patch -x"
+    "release:patch": "release -x patch"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^6.1.0",
