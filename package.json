@@ -1,6 +1,6 @@
 {
   "name": "bilibilivideodownloadFork",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "private": true,
   "homepage": "https://github.com/gxr404/BilibiliVideoDownloadFork",
   "scripts": {
@@ -11,7 +11,7 @@
     "electron:serve": "vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps",
-    "release:patch": "release patch"
+    "release:patch": "release patch -t v"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^6.1.0",
