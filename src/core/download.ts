@@ -105,16 +105,18 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
       status: STATUS.VIDEO_DOWNLOADING,
       progress: Math.round(progress.percent * 100 * 0.75)
     }
+    // console.log('id', videoInfo.id, Math.round(progress.percent * 100 * 0.75))
     event.reply('download-video-status', updateData)
-    store.set(`taskList.${videoInfo.id}`, {
-      ...videoInfo,
-      ...updateData
-    })
+    store.set(`taskList.${videoInfo.id}`, Object.assign(videoInfo, updateData))
+    //   {
+    //   ...videoInfo,
+    //   ...updateData
+    // })
   }
   // 下载视频
   await pipeline(
     got.stream(videoInfo.downloadUrl.video, downloadConfig)
-      .on('downloadProgress', throttle(videoProgressNotify, 400))
+      .on('downloadProgress', throttle(videoProgressNotify, 1000))
       .on('error', async (error: any) => {
         log.error(`视频下载失败：${videoInfo.title}--${error.message}`)
         log.error(`------${videoInfo.downloadUrl.video}, ${JSON.stringify(downloadConfig)}`)
@@ -122,10 +124,11 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
           id: videoInfo.id,
           status: STATUS.FAIL
         }
-        store.set(`taskList.${videoInfo.id}`, {
-          ...videoInfo,
-          ...updateData
-        })
+        // store.set(`taskList.${videoInfo.id}`, {
+        //   ...videoInfo,
+        //   ...updateData
+        // })
+        store.set(`taskList.${videoInfo.id}`, Object.assign(videoInfo, updateData))
         // 防止最后一次节流把错误状态给覆盖掉
         await sleep(500)
         event.reply('download-video-status', updateData)
@@ -144,26 +147,28 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
       progress: Math.round((progress.percent * 100 * 0.22) + 75)
     }
     event.reply('download-video-status', updateData)
-    store.set(`taskList.${videoInfo.id}`, {
-      ...videoInfo,
-      ...updateData
-    })
+    store.set(`taskList.${videoInfo.id}`, Object.assign(videoInfo, updateData))
+    // store.set(`taskList.${videoInfo.id}`, {
+    //   ...videoInfo,
+    //   ...updateData
+    // })
   }
 
   // 下载音频
   await pipeline(
     got.stream(videoInfo.downloadUrl.audio, downloadConfig)
-      .on('downloadProgress', throttle(audioProgressNotify, 400))
+      .on('downloadProgress', throttle(audioProgressNotify, 1000))
       .on('error', async (error: any) => {
         log.error(`音频下载失败：${videoInfo.title} ${error.message}`)
         const updateData = {
           id: videoInfo.id,
           status: STATUS.FAIL
         }
-        store.set(`taskList.${videoInfo.id}`, {
-          ...videoInfo,
-          ...updateData
-        })
+        store.set(`taskList.${videoInfo.id}`, Object.assign(videoInfo, updateData))
+        // store.set(`taskList.${videoInfo.id}`, {
+        //   ...videoInfo,
+        //   ...updateData
+        // })
         // 防止最后一次节流把错误状态给覆盖掉
         await sleep(500)
         event.reply('download-video-status', updateData)

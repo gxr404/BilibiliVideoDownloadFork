@@ -99,7 +99,7 @@ export class JsonDanmaku {
           query = encWbi(params, img_key, sub_key)
         }
         const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?${query}`
-        console.log('danmaAPI', danmaAPI)
+        // console.log('danmaAPI', danmaAPI)
 
         buffer = await window.electron.gotBuffer(danmaAPI, getGotConfig())
       } catch (error) {

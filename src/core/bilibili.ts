@@ -1,3 +1,4 @@
+import pLimit from 'p-limit'
 import { formatSeconed, filterTitle, randUserAgent, getWbiKeys, encWbi } from '../utils'
 import { qualityMap } from '../assets/data/quality'
 import { customAlphabet } from 'nanoid'
@@ -15,68 +16,70 @@ const nanoid = customAlphabet(alphabet, 16)
  */
 const getDownloadList = async (videoInfo: VideoData, selected: number[], quality: number, isReload = false, oldTask?: VideoData) => {
   const downloadList: VideoData[] = []
-  for (let index = 0; index < selected.length; index++) {
-    const currentPage = selected[index]
-    // 请求选中清晰度视频下载地址
-    const currentPageData = videoInfo.page.find(item => item.page === currentPage)
-    if (!currentPageData) throw new Error('获取视频下载地址错误')
-    const currentCid = currentPageData.cid
-    const currentBvid = currentPageData.bvid
-    // 获取下载地址
-    // 判断当前数据是否有下载地址列表，有则直接用，没有再去请求
-    const downloadUrl: DownloadUrl = { video: '', audio: '' }
-    const videoUrl = videoInfo.video.find(item => item.id === quality && item.cid === currentCid)
-    const audioUrl = getHighQualityAudio(videoInfo.audio)
-    // console.log('videoInfo', videoInfo)
-    // console.log('audio url', audioUrl)
-    // await getDownloadUrl(currentCid, currentBvid, quality)
-    let fixQuality = quality
-    if (videoUrl && audioUrl) {
-      downloadUrl.video = videoUrl.url
-      downloadUrl.audio = audioUrl.url
-    } else {
-      const { video, audio, quality: realQuality } = await getDownloadUrl(currentCid, currentBvid, quality)
-      downloadUrl.video = video
-      downloadUrl.audio = audio
-      fixQuality = realQuality
-      // throw new Error('获取视频下载地址错误')
-    }
-    // 获取字幕地址
-    const subtitle = await getSubtitle(currentCid, currentBvid)
-    let taskId = nanoid()
-    if (isReload && oldTask) {
-      taskId = oldTask.id
-    }
-    const videoType = checkUrl(currentPageData.url)
-    const { body, url } = await checkUrlRedirect(currentPageData.url)
-    const curPageVideoInfo = await parseHtml(body, videoType, url)
-    let tempVideoInfo = videoInfo
-    if (curPageVideoInfo !== -1) {
-      tempVideoInfo = {
-        ...videoInfo,
-        ...curPageVideoInfo
+  const limit = pLimit(8)
+  const selectedLen = selected.length
+  const promiseList = selected.map((item, index) => {
+    return limit(async () => {
+      const currentPage = item
+      // 请求选中清晰度视频下载地址
+      const currentPageData = videoInfo.page.find(item => item.page === currentPage)
+      if (!currentPageData) throw new Error('获取视频下载地址错误')
+      const currentCid = currentPageData.cid
+      const currentBvid = currentPageData.bvid
+      // 获取下载地址
+      // 判断当前数据是否有下载地址列表，有则直接用，没有再去请求
+      const downloadUrl: DownloadUrl = { video: '', audio: '' }
+      const videoUrl = videoInfo.video.find(item => item.id === quality && item.cid === currentCid)
+      const audioUrl = getHighQualityAudio(videoInfo.audio)
+      // console.log('videoInfo', videoInfo)
+      // console.log('audio url', audioUrl)
+      // await getDownloadUrl(currentCid, currentBvid, quality)
+      let fixQuality = quality
+      if (videoUrl && audioUrl) {
+        downloadUrl.video = videoUrl.url
+        downloadUrl.audio = audioUrl.url
+      } else {
+        const { video, audio, quality: realQuality } = await getDownloadUrl(currentCid, currentBvid, quality)
+        downloadUrl.video = video
+        downloadUrl.audio = audio
+        fixQuality = realQuality
+        // throw new Error('获取视频下载地址错误')
       }
-    }
-    const videoData: VideoData = {
-      ...tempVideoInfo,
-      id: taskId,
-      title: currentPageData.title,
-      url: currentPageData.url,
-      quality: fixQuality || quality,
-      duration: currentPageData.duration,
-      createdTime: +new Date(),
-      cid: currentCid,
-      bvid: currentBvid,
-      downloadUrl,
-      filePathList: handleFilePathList(selected.length === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId),
-      fileDir: handleFileDir(selected.length === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId),
-      subtitle
-    }
-    downloadList.push(videoData)
-    // if (index !== selected.length - 1) {
-    //   await sleep(1000)
-    // }
-  }
+      // 获取字幕地址
+      const subtitle = await getSubtitle(currentCid, currentBvid)
+      let taskId = nanoid()
+      if (isReload && oldTask) {
+        taskId = oldTask.id
+      }
+      const videoType = checkUrl(currentPageData.url)
+      const { body, url } = await checkUrlRedirect(currentPageData.url)
+      const curPageVideoInfo = await parseHtml(body, videoType, url)
+      let tempVideoInfo = videoInfo
+      if (curPageVideoInfo !== -1) {
+        tempVideoInfo = {
+          ...videoInfo,
+          ...curPageVideoInfo
+        }
+      }
+      const videoData: VideoData = {
+        ...tempVideoInfo,
+        id: taskId,
+        title: currentPageData.title,
+        url: currentPageData.url,
+        quality: fixQuality || quality,
+        duration: currentPageData.duration,
+        createdTime: +new Date(),
+        cid: currentCid,
+        bvid: currentBvid,
+        downloadUrl,
+        filePathList: handleFilePathList(selectedLen === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId),
+        fileDir: handleFileDir(selectedLen === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId),
+        subtitle
+      }
+      downloadList.push(videoData)
+    })
+  })
+  await Promise.all(promiseList)
   return downloadList
 }
 
@@ -150,6 +153,7 @@ const checkLogin = async (SESSDATA: string) => {
 
 // 检查url合法
 const checkUrl = (url: string) => {
+  if (!(/^(https?):\/\//.test(url))) return ''
   const mapUrl = [
     // url 带有video/av 或 video/BV
     {
