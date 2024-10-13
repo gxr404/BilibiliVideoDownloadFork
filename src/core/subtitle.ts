@@ -5,10 +5,13 @@ const got = require('got')
 const fs = require('fs-extra')
 
 export const downloadSubtitle = (fileName: string, list: Subtitle[]) => {
-  for (let index = 0; index < list.length; index++) {
-    const element = list[index]
-    getSubtitleData(element.url, `${fileName}-${element.title}.srt`)
+  const plist = []
+  for (const element of list) {
+    plist.push(
+      getSubtitleData(element.url, `${fileName}-${element.title}.srt`)
+    )
   }
+  return Promise.all(plist)
 }
 
 const getSubtitleData = async (url: string, path: string) => {

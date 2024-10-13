@@ -82,11 +82,16 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
     )
     log.info(`✅ 下载封面完成 ${videoInfo.title}`)
   }
+
+  log.info(`下载字幕 "${JSON.stringify(videoInfo.subtitle)}"`)
   // 下载字幕
-  if (setting.isSubtitle) {
-    await downloadSubtitle(fileName, videoInfo.subtitle)
+  if (setting.isSubtitle &&
+    Array.isArray(videoInfo.subtitle) &&
+    videoInfo.subtitle.length > 0) {
+    downloadSubtitle(fileName, videoInfo.subtitle)
     log.info(`✅ 下载字幕完成 ${videoInfo.title}`)
   }
+
   // 下载弹幕
   if (setting.isDanmaku) {
     event.reply('download-danmuku', videoInfo.cid, videoInfo.title, `${fileName}.ass`)
@@ -138,7 +143,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
 
   log.info(`✅ 下载视频完成 ${videoInfo.title}`)
 
-  await sleep(500)
+  await sleep(1000)
 
   function audioProgressNotify (progress: any) {
     const updateData = {
@@ -177,7 +182,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
   )
   log.info(`✅ 下载下载音频 ${videoInfo.title}`)
 
-  await sleep(500)
+  await sleep(1000)
 
   // 合成视频
   if (setting.isMerge) {

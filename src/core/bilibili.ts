@@ -584,9 +584,18 @@ const getSubtitle = async (cid: number, bvid: string) => {
     },
     responseType: 'json'
   }
-  const { body: { data: { subtitle } } } = await window.electron.got(`https://api.bilibili.com/x/player/v2?cid=${cid}&bvid=${bvid}`, config)
-  const subtitleList: Subtitle[] = subtitle.subtitles ? subtitle.subtitles.map((item: any) => ({ title: item.lan_doc, url: item.subtitle_url })) : []
-  return subtitleList
+  // 获取视频字幕 偶尔会出现 412
+  // Response code 412 (Precondition Failed)
+  try {
+    // console.log(cid, bvid, config)
+    const { body: { data: { subtitle } } } = await window.electron.got(`https://api.bilibili.com/x/player/v2?cid=${cid}&bvid=${bvid}`, config)
+    // console.log('subtitle', subtitle)
+    const subtitleList: Subtitle[] = subtitle.subtitles ? subtitle.subtitles.map((item: any) => ({ title: item.lan_doc, url: item.subtitle_url })) : []
+    return subtitleList
+  } catch (e) {
+    console.error('getSubtitle', e)
+    return []
+  }
 }
 
 // 处理filePathList
