@@ -14,7 +14,7 @@ const nanoid = customAlphabet(alphabet, 16)
  * @params videoInfo: 当前下载的视频详情 selected：所选的分p quality：所选的清晰度
  * @returns 返回下载数据 Array
  */
-const getDownloadList = async (videoInfo: VideoData, selected: number[], quality: number, isReload = false, oldTask?: VideoData) => {
+const getDownloadList = async (videoInfo: VideoData, selected: number[], quality: number, isReload = false, oldTask?: VideoData, saveFilePrefix = true) => {
   const downloadList: VideoData[] = []
   const limit = pLimit(8)
   const selectedLen = selected.length
@@ -72,8 +72,8 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
         cid: currentCid,
         bvid: currentBvid,
         downloadUrl,
-        filePathList: handleFilePathList(selectedLen === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId),
-        fileDir: handleFileDir(selectedLen === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId),
+        filePathList: handleFilePathList(selectedLen === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId, saveFilePrefix),
+        fileDir: handleFileDir(selectedLen === 1 && !isReload ? 0 : currentPage, currentPageData.title, tempVideoInfo, currentBvid, taskId, saveFilePrefix),
         subtitle
       }
       downloadList.push(videoData)
@@ -184,11 +184,12 @@ const checkUrl = (url: string) => {
 
 // 检查url是否有重定向
 const checkUrlRedirect = async (videoUrl: string) => {
+  const ua = randUserAgent()
   const params = {
     videoUrl,
     config: {
       headers: {
-        'User-Agent': randUserAgent(),
+        'User-Agent': ua,
         cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
       }
     }
@@ -599,14 +600,14 @@ const getSubtitle = async (cid: number, bvid: string) => {
 }
 
 // 处理filePathList
-const handleFilePathList = (page: number, title: string, videoInfo: VideoData, bvid: string, id: string): string[] => {
+const handleFilePathList = (page: number, title: string, videoInfo: VideoData, bvid: string, id: string, saveFilePrefix = true): string[] => {
   const up = videoInfo.up[0].name
   const collectionName = (Array.isArray(videoInfo.page) && videoInfo.page.length > 1)
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
-  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}${up ? `-${up}` : ''}` : storeDownloadPath
-  const name = `${!page ? '' : `[P${page}]`}${filterTitle(`${title}${up ? `-${up}` : ''}-${bvid}-${id}`)}`
+  const downloadPath = collectionName ? `${storeDownloadPath}/${up ? `${up}-` : ''}${collectionName}` : storeDownloadPath
+  const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${filterTitle(`${up ? `${up}-` : ''}${title}-${bvid}-${id}`)}`
   const isFolder = store.settingStore().isFolder
   let pathList = [
     `${downloadPath}/${name}.mp4`,
@@ -628,15 +629,14 @@ const handleFilePathList = (page: number, title: string, videoInfo: VideoData, b
 }
 
 // 处理fileDir
-const handleFileDir = (page: number, title: string, videoInfo: VideoData, bvid: string, id: string): string => {
+const handleFileDir = (page: number, title: string, videoInfo: VideoData, bvid: string, id: string, saveFilePrefix = true): string => {
   const up = videoInfo.up[0].name
   const collectionName = (Array.isArray(videoInfo.page) && videoInfo.page.length > 1)
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
-  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}${up ? `-${up}` : ''}` : storeDownloadPath
-
-  const name = `${!page ? '' : `[P${page}]`}${filterTitle(`${title}${up ? `-${up}` : ''}-${bvid}-${id}`)}`
+  const downloadPath = collectionName ? `${storeDownloadPath}/${up ? `${up}-` : ''}${collectionName}` : storeDownloadPath
+  const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${filterTitle(`${up ? `${up}-` : ''}${title}-${bvid}-${id}`)}`
   const isFolder = store.settingStore().isFolder
   return `${downloadPath}${isFolder ? `/${name}/` : ''}`
 }

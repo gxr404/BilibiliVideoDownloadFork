@@ -5,7 +5,7 @@ const userAgent = new UserAgent({
   deviceCategory: 'desktop'
 })
 function randUserAgent () {
-  return userAgent.random().toString()
+  return `${userAgent.random().toString()} ${Math.floor(Math.random() * 100000)}`
 }
 
 export {

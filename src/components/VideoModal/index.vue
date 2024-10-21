@@ -37,6 +37,9 @@
           <a-checkbox @change="onAllSelectedChange">
             全选
           </a-checkbox>
+          <a-checkbox v-model:checked="saveFilePrefix">
+            保留[P?]
+          </a-checkbox>
         </div>
       </div>
       <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac warp mt16">
@@ -76,6 +79,7 @@ const videoInfo = ref<VideoData>(videoData)
 const selected = ref<number[]>([])
 const allSelected = ref<boolean>(false)
 const router = useRouter()
+const saveFilePrefix = ref<boolean>(true)
 
 const cancel = () => {
   visible.value = false
@@ -87,7 +91,7 @@ const cancel = () => {
 const handleDownload = async () => {
   confirmLoading.value = true
   // 获取当前选中视频的下载数据
-  const list = await getDownloadList(toRaw(videoInfo.value), toRaw(selected.value), quality.value)
+  const list = await getDownloadList(toRaw(videoInfo.value), toRaw(selected.value), quality.value, undefined, undefined, saveFilePrefix.value)
   console.log('list-->', list)
   const taskList = addDownload(list)
   store.taskStore().setTask(taskList)
@@ -110,6 +114,7 @@ const handleDownload = async () => {
 }
 
 const open = (data: VideoData) => {
+  saveFilePrefix.value = true
   const quality = userQuality[store.baseStore().loginStatus]
   // 过滤掉 不合法的清晰度
   data.qualityOptions = data.qualityOptions.filter((item: any) => quality.includes(item.value))
