@@ -220,14 +220,14 @@ const parseHtml = (html: string, type: string, url: string) => {
 
 const parseBV = async (html: string, url: string) => {
   try {
-    const videoInfo = html.match(/\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)/)
-    if (!videoInfo) throw new Error(`parse bv error ${url}`)
+    const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)/)
+    if (!videoInfo) throw new Error(`parse bv error [videoInfo]: ${url}`)
     const { videoData } = JSON.parse(videoInfo[1])
     // 获取视频下载地址
     let acceptQuality = null
     try {
       let downLoadData: any = html.match(/\<script\>window\.\_\_playinfo\_\_\=([\s\S]*?)\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=/)
-      if (!downLoadData) throw new Error(`parse bv error ${url}`)
+      if (!downLoadData) throw new Error(`parse bv error [downLoadData]: ${url}`)
       downLoadData = JSON.parse(downLoadData[1])
       acceptQuality = {
         accept_quality: downLoadData.data.accept_quality,
@@ -271,7 +271,6 @@ const parseBV = async (html: string, url: string) => {
 
 const parseList = async (html: string, url: string) => {
   try {
-    // const videoInfo = html.match(/\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)/)
     const videoInfo = html.match(/<script>window\.__INITIAL_STATE__=([\s\S]*?);\(function\(\)/)
     if (!videoInfo) throw new Error(`parse bv error ${url}`)
     const { videoData, resourceList, playlist, mediaListInfo } = JSON.parse(videoInfo[1])
