@@ -50,21 +50,21 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
 
   // 去掉扩展名的文件路径
   const fileName = videoInfo.filePathList[0].substring(0, videoInfo.filePathList[0].length - 4)
-  if (setting.isFolder) {
-    // 创建文件夹
-    try {
-      if (!fs.existsSync(videoInfo.fileDir)) {
-        fs.mkdirSync(`${videoInfo.fileDir}`, {
-          recursive: true
-        })
-        log.info(`文件夹创建成功：${videoInfo.fileDir}`)
-      } else {
-        log.info(`文件夹已存在：${videoInfo.fileDir}`)
-      }
-    } catch (error) {
-      log.error(`创建文件夹失败：${error}`)
+  // if (setting.isFolder) {
+  // 创建文件夹 存在多p视频时 设置关闭了 下载到单独的文件时 也会需插件合集的目录
+  try {
+    if (!fs.existsSync(videoInfo.fileDir)) {
+      fs.mkdirSync(`${videoInfo.fileDir}`, {
+        recursive: true
+      })
+      log.info(`文件夹创建成功：${videoInfo.fileDir}`)
+    } else {
+      log.info(`文件夹已存在：${videoInfo.fileDir}`)
     }
+  } catch (error) {
+    log.error(`创建文件夹失败：${error}`)
   }
+  // }
   // 下载封面
   if (setting.isCover) {
     const imageConfig = {
