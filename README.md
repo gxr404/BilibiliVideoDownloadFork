@@ -3,7 +3,7 @@
   <h1>BilibiliVideoDownload</h1>
 </div>
 
-## ⚠️Buf修复⚠️
+## ⚠️Bug修复⚠️
 
 ***由于[原项目](https://github.com/BilibiliVideoDownload/BilibiliVideoDownload)已经好久没人维护，无人修复bug，因此fork该库修复bug，优化功能体验***
 
