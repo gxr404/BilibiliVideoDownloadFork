@@ -1,3 +1,3 @@
-export const sleep = (timeountMS: number) => new Promise((resolve) => {
-  setTimeout(resolve, timeountMS)
+export const sleep = (timeoutMS: number) => new Promise((resolve) => {
+  setTimeout(resolve, timeoutMS)
 })

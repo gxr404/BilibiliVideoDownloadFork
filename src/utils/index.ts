@@ -1,5 +1,5 @@
 export * from './handleOldVerSetting'
-export * from './formatSeconed'
+export * from './formatSecond'
 export * from './filterTitle'
 export * from './sleep'
 export * from './randUA'

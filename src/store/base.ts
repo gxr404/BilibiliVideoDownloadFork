@@ -23,7 +23,7 @@ export const baseStore = defineStore('base', {
     setLoginStatus (status: 0 | 1 | 2) {
       this.loginStatus = status
     },
-    setdownloadingTaskCount (num: number) {
+    setDownloadingTaskCount (num: number) {
       this.downloadingTaskCount = num
     },
     reduceDownloadingTaskCount (count: number) {

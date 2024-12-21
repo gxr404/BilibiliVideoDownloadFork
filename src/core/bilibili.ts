@@ -1,5 +1,5 @@
 import pLimit from 'p-limit'
-import { formatSeconed, filterTitle, randUserAgent, getWbiKeys, encWbi } from '../utils'
+import { formatSecond, filterTitle, randUserAgent, getWbiKeys, encWbi } from '../utils'
 import { qualityMap } from '../assets/data/quality'
 import { customAlphabet } from 'nanoid'
 import alphabet from '../assets/data/alphabet'
@@ -249,7 +249,7 @@ const parseBV = async (html: string, url: string) => {
       view: videoData.stat.view,
       danmaku: videoData.stat.danmaku,
       reply: videoData.stat.reply,
-      duration: formatSeconed(videoData.duration),
+      duration: formatSecond(videoData.duration),
       up: videoData.hasOwnProperty('staff') ? videoData.staff.map((item: any) => ({ name: item.name, mid: item.mid })) : [{ name: videoData.owner.name, mid: videoData.owner.mid }],
       qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
       page: parseBVPageData(videoData, url),
@@ -304,7 +304,7 @@ const parseList = async (html: string, url: string) => {
       view: videoData.stat.view,
       danmaku: videoData.stat.danmaku,
       reply: videoData.stat.reply,
-      duration: formatSeconed(videoData.duration),
+      duration: formatSecond(videoData.duration),
       up: videoData.hasOwnProperty('staff') ? videoData.staff.map((item: any) => ({ name: item.name, mid: item.mid })) : [{ name: videoData.owner.name, mid: videoData.owner.mid }],
       qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
       // videoData page 如果存在 按 BVPageData解析
@@ -410,8 +410,8 @@ const parseEP = async (html: string, url: string) => {
       danmaku: mediaInfo.stat.danmakus,
       reply: mediaInfo.stat.reply,
       // 非会员的账号读取会员视频时 读取不到dash
-      duration: formatSeconed(downLoadData?.dash?.duration / 1000),
-      // duration: formatSeconed(downLoadData.dash.duration / 1000),
+      duration: formatSecond(downLoadData?.dash?.duration / 1000),
+      // duration: formatSecond(downLoadData.dash.duration / 1000),
       up: mediaInfo.upInfo ? [{ name: mediaInfo.upInfo.name, mid: mediaInfo.upInfo.mid }] : [{ name: '', mid: '' }],
       qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
       page: parseEPPageData(epList, h1Title),
@@ -663,7 +663,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
         // 合集名
         collectionName: ugc_season.title || '',
         page: index + 1,
-        duration: formatSeconed(item.arc.duration),
+        duration: formatSecond(item.arc.duration),
         cid: item.cid,
         bvid: item.bvid,
         url: `https://www.bilibili.com/video/${item.bvid}`
@@ -674,7 +674,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
         title,
         url,
         page: pages[0].page,
-        duration: formatSeconed(pages[0].duration),
+        duration: formatSecond(pages[0].duration),
         cid: pages[0].cid,
         bvid: bvid
       }
@@ -684,7 +684,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
       title: item.part,
       page: item.page,
       collectionName: title,
-      duration: formatSeconed(item.duration),
+      duration: formatSecond(item.duration),
       cid: item.cid,
       bvid: bvid,
       url: `${url}?p=${item.page}`
@@ -698,7 +698,7 @@ const parseEPPageData = (epList: any[], collectionName: string): Page[] => {
   return epList.map((item, index) => ({
     title: item.share_copy,
     page: index + 1,
-    duration: formatSeconed(item.duration / 1000),
+    duration: formatSecond(item.duration / 1000),
     cid: item.cid,
     bvid: item.bvid,
     url: item.share_url,
@@ -718,7 +718,7 @@ const parseListPageData = (url: string, resourceList: any[], playlist: any, medi
     // page: item.page,
     page: index + 1,
     collectionName: mediaListInfo.title,
-    duration: formatSeconed(item.duration),
+    duration: formatSecond(item.duration),
     cid: item?.pages?.[0]?.id,
     bvid: item.bv_id,
     url: `${listURL}?sid=${playlist.id}&oid=${item.id}&bvid=${item.bv_id}`
