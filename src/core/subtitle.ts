@@ -22,8 +22,7 @@ const getSubtitleData = async (url: string, path: string) => {
     responseType: 'json'
   })
   const str = handleSubtitleData(body)
-  // 生成字幕文件
-  createFile(path, str)
+  await createFile(path, str)
 }
 
 const handleSubtitleData = (subtitle: any[]) => {
@@ -48,10 +47,11 @@ const formatSeconds = (value: number) => {
   return res
 }
 
-const createFile = (path: string, data: string) => {
-  fs.writeFile(path, data, { encoding: 'utf8' }, (err: any) => {
-    if (!err) {
-      console.log('success')
-    }
-  })
+const createFile = async (path: string, data: string) => {
+  try {
+    await fs.writeFile(path, data, { encoding: 'utf8' })
+    console.log('success')
+  } catch (err) {
+    console.error('写入文件失败:', err)
+  }
 }
