@@ -23,19 +23,23 @@
           </div>
           <div class="menu">
             <div class="item">
-              <UserOutlined v-if="store.baseStore().loginStatus === 0" :style="{fontSize: '22px'}" @click="login()" />
-              <div v-else class="user-face">
-                <a-popconfirm
-                  title="你确定要退出登录吗?"
-                  ok-text="是"
-                  cancel-text="否"
-                  placement="right"
-                  @confirm="quitLogin"
-                >
-                  <img :src="store.settingStore().face" alt="userFace">
-                </a-popconfirm>
+              <div class="vip-warp">
+                <div class="vip-flag" v-if="store.baseStore().loginStatus === 2">
+                  <CrownFilled />
+                </div>
+                <UserOutlined v-if="store.baseStore().loginStatus === 0" :style="{fontSize: '22px'}" @click="login()" />
+                <div v-else class="user-face">
+                  <a-popconfirm
+                    title="你确定要退出登录吗?"
+                    ok-text="是"
+                    cancel-text="否"
+                    placement="right"
+                    @confirm="quitLogin"
+                  >
+                    <img :src="store.settingStore().face" alt="userFace">
+                  </a-popconfirm>
+                </div>
               </div>
-
             </div>
             <div class="item">
               <SettingOutlined :style="{fontSize: '22px'}" @click="settingDrawer.open()" />
@@ -59,7 +63,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import zh_CN from 'ant-design-vue/es/locale/zh_CN'
-import { UserOutlined, HomeOutlined, DownloadOutlined, SettingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, HomeOutlined, DownloadOutlined, SettingOutlined, InfoCircleOutlined, CrownFilled } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import TitleBar from './components/TitleBar/index.vue'
@@ -236,6 +240,8 @@ onMounted(() => {
     }
   }
   .user-face {
+    position: relative;
+    z-index: 1;
     width: 24px;
     height: 24px;
     overflow: hidden;
@@ -247,11 +253,25 @@ onMounted(() => {
     justify-content: center;
     transition: all 0.3s;
     border: 1px solid transparent;
+    // border: 1px solid #a1a5ad;
     &:hover {
       border: 1px solid @primary-color;
     }
     img {
       width: 100%;
+    }
+  }
+  .vip-warp {
+    position: relative;
+    z-index: 0;
+    .vip-flag {
+      position: absolute;
+      top: -7px;
+      right: -5px;
+      color: #feca2c;
+      font-size: 12px;
+      transform: scale(0.8) rotate(45deg);
+      z-index: 0;
     }
   }
 

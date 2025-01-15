@@ -23,7 +23,13 @@
       </div>
       <div class="mt16">
         选择清晰度：
-        <div class="mt8">
+        <div class="mt8" v-if="videoInfo.qualityOptions.length <= 0">
+          <p class="err-msg">o(╥﹏╥)o 无法获取清晰度列表</p>
+          <p class="err-msg" v-if="store.baseStore().loginStatus !== 2">
+          当前账号为「<span style="font-weight: bold;">{{store.baseStore().loginStatus === 1 ? '普通用户' : '游客'}}</span>」,请确认该视频是否是会员视频
+          </p>
+        </div>
+        <div class="mt8" v-else>
           <a-radio-group v-model:value="quality">
             <a-radio class="custom-radio" v-for="(item, index) in videoInfo.qualityOptions" :key="index" :value="item.value">
               {{ item.label }}
@@ -246,6 +252,10 @@ defineExpose({
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+  }
+  .err-msg {
+    text-align: center;
+    color: @primary-color;
   }
 }
 .custom-radio{

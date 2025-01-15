@@ -342,7 +342,7 @@ const parseEP = async (html: string, url: string) => {
 
     const { video_info, view_info, play_view_business_info } = __playinfo__.result
 
-    const { ep_id } = view_info.report
+    const { ep_id } = view_info?.report || {}
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
     // const { epInfo, epList } = {} as any
     const mediaInfo = nextData.props.pageProps.dehydratedState.queries[1].state.data
