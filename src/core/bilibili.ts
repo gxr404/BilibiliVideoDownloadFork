@@ -605,7 +605,7 @@ const handleFilePathList = (page: number, title: string, videoInfo: VideoData, b
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
-  const downloadPath = collectionName ? `${storeDownloadPath}/${up ? `${up}-` : ''}${collectionName}` : storeDownloadPath
+  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}` : storeDownloadPath
   const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${filterTitle(`${up ? `${up}-` : ''}${title}-${bvid}-${id}`)}`
   const isFolder = store.settingStore().isFolder
   let pathList = [
@@ -634,7 +634,7 @@ const handleFileDir = (page: number, title: string, videoInfo: VideoData, bvid: 
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
-  const downloadPath = collectionName ? `${storeDownloadPath}/${up ? `${up}-` : ''}${collectionName}` : storeDownloadPath
+  const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}` : storeDownloadPath
   const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${filterTitle(`${up ? `${up}-` : ''}${title}-${bvid}-${id}`)}`
   const isFolder = store.settingStore().isFolder
   return `${downloadPath}${isFolder ? `/${name}/` : ''}`
