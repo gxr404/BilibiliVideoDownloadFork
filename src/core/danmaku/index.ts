@@ -172,7 +172,7 @@ export const downloadDanmaku = async (cid: number, title: string, path: string) 
     window.electron.saveDanmukuFile(str, path)
   } catch (error: any) {
     console.error('error', error)
-    // webpack://bilibilivideodownloadFork/./node_modules/protobufjs/src/reader.js?e5c5
+    // webpack://bilibilivideodownload-fork/./node_modules/protobufjs/src/reader.js?e5c5
     // index out of range:
     // TODO: error index out of range: 3 + 99 > 39
     message.error(`弹幕下载错误：${error.message}`)

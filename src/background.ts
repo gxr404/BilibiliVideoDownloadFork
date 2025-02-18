@@ -20,7 +20,7 @@ let win: BrowserWindow
 // 设置软件系统菜单
 const template: any = [
   {
-    label: app.name,
+    label: 'BilibiliVideoDownloadFork',
     submenu: [
       { label: '关于', role: 'about' },
       { label: '缩小', role: 'minimize' },
@@ -261,6 +261,7 @@ async function createWindow () {
     maximizable: false,
     minimizable: true,
     titleBarStyle: 'hidden',
+    title: 'BilibiliVideoDownloadFork',
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info

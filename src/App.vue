@@ -4,7 +4,7 @@
     <CheckUpdate ref="checkUpdate" />
     <div class="warp">
       <TitleBar
-        title="BilibiliVideoDownload"
+        title="BilibiliVideoDownloadFork"
         :isBackground="false"
         :isMinimizable="true"
         :isMaximizable="false"
