@@ -1,3 +1,5 @@
+const packageInfo = require('./package.json')
+
 module.exports = {
   pluginOptions: {
     electronBuilder: {
@@ -5,8 +7,8 @@ module.exports = {
       nodeModulesPath: ['../../node_modules', './node_modules'],
       preload: 'src/preload.js',
       builderOptions: {
-        productName: 'BilibiliVideoDownloadFork',
-        appId: 'com.gxr404.bilibilivideodownloadfork',
+        productName: packageInfo.productName,
+        appId: `com.gxr404.${packageInfo.productName.toLowerCase()}`,
         dmg: {
           contents: [
             {

@@ -14,7 +14,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-const packageInfo = require('../../../package.json')
+import packageInfo from '../../../package.json'
 
 const visible = ref<boolean>(false)
 const newVersion = ref<string>('')

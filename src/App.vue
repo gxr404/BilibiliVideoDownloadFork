@@ -4,7 +4,7 @@
     <CheckUpdate ref="checkUpdate" />
     <div class="warp">
       <TitleBar
-        title="BilibiliVideoDownloadFork"
+        :title="pageInfo.productName"
         :isBackground="false"
         :isMinimizable="true"
         :isMaximizable="false"
@@ -45,7 +45,7 @@
               <SettingOutlined :style="{fontSize: '22px'}" @click="settingDrawer.open()" />
             </div>
             <div class="item">
-              <InfoCircleOutlined :style="{fontSize: '22px'}" @click="userModal.toogleVisible()" />
+              <InfoCircleOutlined :style="{fontSize: '22px'}" @click="userModal.toggleVisible()" />
             </div>
           </div>
         </div>
@@ -62,6 +62,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import zh_CN from 'ant-design-vue/es/locale/zh_CN'
 import { UserOutlined, HomeOutlined, DownloadOutlined, SettingOutlined, InfoCircleOutlined, CrownFilled } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
@@ -77,7 +78,7 @@ import { STATUS } from './assets/data/status'
 import UserModal from './components/UserModal/index.vue'
 import LoginModal from './components/LoginModal/index.vue'
 import SettingDrawer from './components/SettingDrawer/index.vue'
-import { useRoute, useRouter } from 'vue-router'
+import pageInfo from '../package.json'
 
 const router = useRouter()
 const route = useRoute()

@@ -20,7 +20,8 @@ let win: BrowserWindow
 // 设置软件系统菜单
 const template: any = [
   {
-    label: 'BilibiliVideoDownloadFork',
+    // app.name Electron会优先使用 package.json 中的productName 其次再使用name
+    label: app.name,
     submenu: [
       { label: '关于', role: 'about' },
       { label: '缩小', role: 'minimize' },
@@ -261,7 +262,7 @@ async function createWindow () {
     maximizable: false,
     minimizable: true,
     titleBarStyle: 'hidden',
-    title: 'BilibiliVideoDownloadFork',
+    title: app.name,
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info

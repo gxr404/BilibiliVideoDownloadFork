@@ -84,10 +84,10 @@ const open = () => {
   modelRef.isDanmaku = isDanmaku.value
   modelRef.isFolder = isFolder.value
   modelRef.downloadingMaxSize = downloadingMaxSize.value
-  toogleVisible()
+  toggleVisible()
 }
 
-const toogleVisible = () => {
+const toggleVisible = () => {
   visible.value = !visible.value
 }
 
@@ -95,7 +95,7 @@ const hide = () => {
   validate()
     .then(() => {
       store.settingStore().setSetting(toRaw(modelRef))
-      toogleVisible()
+      toggleVisible()
     })
     .catch(err => {
       console.log('error', err)
