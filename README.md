@@ -1,6 +1,6 @@
 <div align="center">
   <img src="./build/icons/256x256.png" alt="" width="128">
-  <h1>BilibiliVideoDownload</h1>
+  <h1>BilibiliVideoDownloadFork</h1>
 </div>
 
 ## ⚠️Bug修复⚠️
@@ -33,7 +33,7 @@
 打开显示「“xxxx”已损坏，无法打开。 您应该将它移到废纸篓。」
 
 ```bash
-sudo xattr -d com.apple.quarantine /Applications/bilibilivideodownloadFork.app
+sudo xattr -d com.apple.quarantine /Applications/BilibiliVideoDownloadFork.app
 ```
 
 ## 注意

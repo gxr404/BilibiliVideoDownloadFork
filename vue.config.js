@@ -5,8 +5,8 @@ module.exports = {
       nodeModulesPath: ['../../node_modules', './node_modules'],
       preload: 'src/preload.js',
       builderOptions: {
-        productName: 'bilibilivideodownloadFork',
-        appId: 'com.blogwy.bilibilivideodownloadFork',
+        productName: 'BilibiliVideoDownloadFork',
+        appId: 'com.gxr404.bilibilivideodownloadfork',
         dmg: {
           contents: [
             {

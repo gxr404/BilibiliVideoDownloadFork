@@ -6,7 +6,7 @@
     <div class="user fc ac">
       <img src="../../assets/images/user.png" alt="" class="avatar">
       <div class="version mt16">
-        {{ `${projectName} - v${version}` }} <ReloadOutlined @click="checkUpdate.checkUpdate()" />
+        {{ `BilibiliVideoDownloadFork - v${version}` }} <ReloadOutlined @click="checkUpdate.checkUpdate()" />
       </div>
       <div class="git mt16">项目地址：<span class="text-active" @click="openBrowser(projectUrl)">{{ projectUrl }}</span></div>
       <div class="desc mt16">个人作品，代码稀烂，大佬轻喷，如有问题，<span class="text-active" @click="openBrowser(`${projectUrl}/issues`)">请点这里</span></div>
