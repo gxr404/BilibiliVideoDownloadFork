@@ -326,6 +326,12 @@ const parseList = async (html: string, url: string) => {
   }
 }
 
+// function sleep (ms: number) {
+//   return new Promise((resolve) => {
+//     setTimeout(resolve, ms)
+//   })
+// }
+
 const parseEP = async (html: string, url: string) => {
   try {
     // const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)\{var s\;/)
@@ -588,7 +594,15 @@ const getSubtitle = async (cid: number, bvid: string) => {
   // Response code 412 (Precondition Failed)
   try {
     // console.log(cid, bvid, config)
-    const { body: { data: { subtitle } } } = await window.electron.got(`https://api.bilibili.com/x/player/v2?cid=${cid}&bvid=${bvid}`, config)
+    const queryParams: any = {
+      cid,
+      bvid
+    }
+    const query = Object.keys(queryParams).map(key => `${key}=${queryParams[key]}`).join('&')
+    const apiUri = `https://api.bilibili.com/x/player/wbi/v2?${query}`
+    // console.log('subtitle apiUri', apiUri)
+    // await sleep(1000)
+    const { body: { data: { subtitle } } } = await window.electron.got(apiUri, config)
     // console.log('subtitle', subtitle)
     const subtitleList: Subtitle[] = subtitle.subtitles ? subtitle.subtitles.map((item: any) => ({ title: item.lan_doc, url: item.subtitle_url })) : []
     return subtitleList
