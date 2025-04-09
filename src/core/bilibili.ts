@@ -34,6 +34,7 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
       // console.log('videoInfo', videoInfo)
       // console.log('audio url', audioUrl)
       // await getDownloadUrl(currentCid, currentBvid, quality)
+      // console.log('(currentCid, currentBvid, quality)', currentCid, currentBvid, quality)
       let fixQuality = quality
       if (videoUrl && audioUrl) {
         downloadUrl.video = videoUrl.url
@@ -274,7 +275,7 @@ const parseList = async (html: string, url: string) => {
     const videoInfo = html.match(/<script>window\.__INITIAL_STATE__=([\s\S]*?);\(function\(\)/)
     if (!videoInfo) throw new Error(`parse bv error ${url}`)
     const { videoData, resourceList, playlist, mediaListInfo } = JSON.parse(videoInfo[1])
-    console.log(videoData)
+    console.log('parse List videoData', videoData)
     // 获取视频下载地址
     let acceptQuality = null
     try {
@@ -546,7 +547,7 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     config
   )
   // console.log('playurl', `https://api.bilibili.com/x/player/wbi/playurl?${query}`)
-  // console.log(res)
+  // console.log('res', res)
   // 无视频可能是会员视频
   if (String(res.body.code) === '-404') {
     // throw new Error('无视频可能是会员视频')
@@ -726,17 +727,25 @@ const parseEPPageData = (epList: any[], collectionName: string): Page[] => {
 const parseListPageData = (url: string, resourceList: any[], playlist: any, mediaListInfo: any): Page[] => {
   const { origin, pathname } = new URL(url)
   const listURL = `${origin}${pathname}`
-
-  const page = resourceList.map((item, index) => ({
-    title: item?.pages?.[0]?.title,
-    // page: item.page,
-    page: index + 1,
-    collectionName: mediaListInfo.title,
-    duration: formatSecond(item.duration),
-    cid: item?.pages?.[0]?.id,
-    bvid: item.bv_id,
-    url: `${listURL}?sid=${playlist.id}&oid=${item.id}&bvid=${item.bv_id}`
-  }))
+  // console.log('url: string, resourceList: any[], playlist: any, mediaListInfo:', url, resourceList, playlist, mediaListInfo)
+  const page = resourceList.map((item, index) => {
+    // 20250409 原先id 对应cid bv_id 对应bvid 应该是接口变了
+    const title = item.title || item?.pages?.[0]?.title
+    const cid = item?.pages?.[0]?.cid || item?.pages?.[0]?.id
+    const bvid = item.bvid || item.bv_id
+    const duration = item?.pages?.[0]?.duration || item.duration
+    return {
+      title,
+      // page: item.page,
+      page: index + 1,
+      collectionName: mediaListInfo.title,
+      duration: formatSecond(duration),
+      cid,
+      bvid,
+      url: `${listURL}?sid=${playlist.id}&oid=${item.oid}&bvid=${bvid}`
+    }
+  })
+  // console.log('page ---> ', page)
   return page
 }
 
