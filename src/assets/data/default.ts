@@ -39,6 +39,7 @@ export const settingData: SettingData = {
   isFolder: true,
   isCover: true,
   downloadingMaxSize: 5,
+  formatFileNameVal: 0,
   face: ''
 }
 

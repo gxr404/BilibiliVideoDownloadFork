@@ -13,6 +13,32 @@ const formConfig = [
     tips: '没有设置下载地址不能下载'
   },
   {
+    label: '文件命名格式',
+    type: 'select',
+    name: 'formatFileNameVal',
+    value: 0,
+    options: [
+      {
+        value: 0,
+        label: 'up-tilte-bvid-id',
+        default: true
+      },
+      {
+        value: 1,
+        label: 'title-bvid'
+      },
+      {
+        value: 2,
+        label: 'title-id'
+      },
+      {
+        value: 3,
+        label: 'tilte (最精简相同标题可能覆盖)'
+      }
+    ],
+    tips: '保存的文件名或文件夹名的格式'
+  },
+  {
     label: '最大下载数',
     type: 'slider',
     name: 'downloadingMaxSize',
@@ -64,7 +90,8 @@ const settingData = {
   isDanmaku: true,
   isFolder: true,
   isCover: true,
-  downloadingMaxSize: 5
+  downloadingMaxSize: 5,
+  formatFileNameVal: 0
 }
 
 const settingRules = {
@@ -106,6 +133,11 @@ const settingRules = {
     }
   ],
   isCover: [
+    {
+      required: false
+    }
+  ],
+  formatFileNameVal: [
     {
       required: false
     }

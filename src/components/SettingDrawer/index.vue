@@ -51,6 +51,11 @@
         </a-input>
         <a-slider v-if="item.type === 'slider'" :max="5" :min="1" v-model:value="modelRef[item.name]" />
         <a-switch v-if="item.type === 'switch'" v-model:checked="modelRef[item.name]" />
+        <a-select v-if="item.type === 'select'" v-model:value="modelRef[item.name]">
+          <a-select-option v-for="opItem in item.options" :value="opItem.value" :key="opItem.value">
+            {{opItem.label}}
+          </a-select-option>
+        </a-select>
       </a-form-item>
     </a-form>
   </a-drawer>
@@ -67,7 +72,7 @@ import { storeToRefs } from 'pinia'
 import LoginModal from '../LoginModal/index.vue'
 
 const { loginStatus } = storeToRefs(store.baseStore())
-const { downloadPath, isDanmaku, isDelete, isFolder, isMerge, isSubtitle, downloadingMaxSize } = storeToRefs(store.settingStore())
+const { downloadPath, isDanmaku, isDelete, isFolder, isMerge, isSubtitle, downloadingMaxSize, formatFileNameVal } = storeToRefs(store.settingStore())
 
 const loginModal = ref<any>(null)
 const visible = ref<boolean>(false)
@@ -84,6 +89,7 @@ const open = () => {
   modelRef.isDanmaku = isDanmaku.value
   modelRef.isFolder = isFolder.value
   modelRef.downloadingMaxSize = downloadingMaxSize.value
+  modelRef.formatFileNameVal = formatFileNameVal.value
   toggleVisible()
 }
 

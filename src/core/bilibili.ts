@@ -1,5 +1,5 @@
 import pLimit from 'p-limit'
-import { formatSecond, filterTitle, randUserAgent, getWbiKeys, encWbi } from '../utils'
+import { formatSecond, randUserAgent, getWbiKeys, encWbi, formatFileName } from '../utils'
 import { qualityMap } from '../assets/data/quality'
 import { customAlphabet } from 'nanoid'
 import alphabet from '../assets/data/alphabet'
@@ -620,8 +620,9 @@ const handleFilePathList = (page: number, title: string, videoInfo: VideoData, b
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
+  const formatFileNameVal = store.settingStore().formatFileNameVal
   const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}` : storeDownloadPath
-  const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${filterTitle(`${up ? `${up}-` : ''}${title}-${bvid}-${id}`)}`
+  const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${formatFileName(formatFileNameVal, { up, title, bvid, id })}`
   const isFolder = store.settingStore().isFolder
   let pathList = [
     `${downloadPath}/${name}.mp4`,
@@ -649,8 +650,9 @@ const handleFileDir = (page: number, title: string, videoInfo: VideoData, bvid: 
     ? videoInfo.page[0].collectionName
     : ''
   const storeDownloadPath = store.settingStore().downloadPath
+  const formatFileNameVal = store.settingStore().formatFileNameVal
   const downloadPath = collectionName ? `${storeDownloadPath}/${collectionName}` : storeDownloadPath
-  const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${filterTitle(`${up ? `${up}-` : ''}${title}-${bvid}-${id}`)}`
+  const name = `${(page && saveFilePrefix) ? `[P${page}]` : ''}${formatFileName(formatFileNameVal, { up, title, bvid, id })}`
   const isFolder = store.settingStore().isFolder
   return `${downloadPath}${isFolder ? `/${name}/` : ''}`
 }

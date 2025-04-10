@@ -15,6 +15,7 @@ export const settingStore = defineStore('setting', {
       isFolder: true,
       isCover: true,
       downloadingMaxSize: 5,
+      formatFileNameVal: 0,
       face: ''
     }
     return setting
@@ -30,7 +31,8 @@ export const settingStore = defineStore('setting', {
       isDanmaku: state.isDanmaku,
       isFolder: state.isFolder,
       isCover: state.isCover,
-      downloadingMaxSize: state.downloadingMaxSize
+      downloadingMaxSize: state.downloadingMaxSize,
+      formatFileNameVal: state.formatFileNameVal
     })
   },
   actions: {
@@ -77,6 +79,10 @@ export const settingStore = defineStore('setting', {
     setFace (url: string) {
       this.face = url || ''
       window.electron.setStore('setting.face', url)
+    },
+    setFormatFileNameVal (value: number) {
+      this.formatFileNameVal = value || 0
+      window.electron.setStore('setting.formatFileNameVal', value)
     },
     setSetting (setting: SettingDataEasy) {
       const allSetting = this.getSetting
