@@ -44,6 +44,8 @@ export interface QualityItem {
 
 export interface Page {
   title: string,
+  showTitle: string,
+  longTitle?: string,
   url: string,
   bvid: string,
   cid: number,
@@ -53,7 +55,7 @@ export interface Page {
   collectionName?: string
   // 徽章 视频需要vip的话该值会是“会员”
   badge?: string
-  epTitle?: string
+  sectionsTitle?: string
 }
 
 export interface Subtitle {
@@ -80,6 +82,7 @@ export interface DownloadUrl {
 
 export interface VideoData {
   id: string,
+  parseType?: 'ep' | 'bv' | 'list',
   title: string,
   url: string,
   bvid: string,

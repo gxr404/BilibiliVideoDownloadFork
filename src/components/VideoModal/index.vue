@@ -9,6 +9,7 @@
     title="当前视频信息"
     okText="下载"
     cancelText="取消"
+    :width="(videoInfo?.page && videoInfo?.page.length) > 40 ? 700 : undefined"
     @cancel="cancel"
     @ok="handleDownload">
     <div class="video-modal custom-scroll-bar">
@@ -48,28 +49,66 @@
           </a-checkbox>
         </div>
       </div>
-      <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac warp mt16">
-        <div
-          v-for="(item, index) in videoInfo.page" :key="index"
-          :class="['video-item', selected.includes(item.page) ? 'active' : '',
-          store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
-          @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
-          <span class="badge" v-if="item.badge=== '会员'">{{item.badge}}</span>
-          <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span>
-          <a-tooltip>
-            <template #title>
-              {{ item.title }}
-            </template>
-            <span class="ellipsis-1">{{ item.title }}</span>
-          </a-tooltip>
+      <!-- <div v-if="videoInfo.page[0]?.longTitle" class="fr ac jsb mt16">
+        <div>&nbsp;</div>
+        <div>
+          <a-checkbox v-model:checked="showLongTitle">
+            显示长标题
+          </a-checkbox>
         </div>
-      </div>
+      </div> -->
+      <template v-if="videoList.length> 1">
+      <!-- {{ selected }} -->
+        <a-tabs v-model:activeKey="videoListActive">
+          <a-tab-pane
+            v-for="(videoListItem, tabIndex) in videoList"
+            :key="`videoList-${tabIndex}`"
+            :tab="videoListItem.title">
+            <div class="fr ac warp mt16 video-content">
+              <template v-for="(item, index) in videoListItem.data" :key="`videoList-${tabIndex}-${index}`">
+                <a-tooltip>
+                    <template #title>
+                      {{ item.longTitle || item.title }}
+                    </template>
+                  <div
+                    :class="['video-item', selected.includes(item.page) ? 'active' : '',
+                    store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
+                    @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
+                    <span class="badge" :data-content="item.badge">{{item.badge}}</span>
+                    <!-- <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span> -->
+                    <span class="ellipsis-1">{{ item.showTitle || item.title }}</span>
+                  </div>
+                </a-tooltip>
+              </template>
+            </div>
+          </a-tab-pane>
+        </a-tabs>
+      </template>
+      <template v-else>
+        <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac warp mt16 video-content">
+          <template v-for="(item, index) in videoInfo.page" :key="`main-${index}`">
+            <a-tooltip>
+                <template #title>
+                  {{ item.longTitle || item.title }}
+                </template>
+              <div
+                :class="['video-item', selected.includes(item.page) ? 'active' : '',
+                store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
+                @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
+                <span class="badge" :data-content="item.badge">{{item.badge}}</span>
+                <!-- <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span> -->
+                <span class="ellipsis-1">{{ item.title }}</span>
+              </div>
+            </a-tooltip>
+          </template>
+        </div>
+      </template>
     </div>
   </a-modal>
 </template>
 
 <script lang="ts" setup>
-import { ref, toRaw } from 'vue'
+import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { store } from '../../store'
 import { getDownloadList, addDownload } from '../../core/bilibili'
@@ -86,6 +125,30 @@ const selected = ref<number[]>([])
 const allSelected = ref<boolean>(false)
 const router = useRouter()
 const saveFilePrefix = ref<boolean>(true)
+const videoListActive = ref('videoList-0')
+
+const videoList = computed(() => {
+  if (!Array.isArray(videoInfo.value.page) || videoInfo.value.page.length <= 1) {
+    return []
+  }
+  const res = []
+  const temp: any = {}
+  videoInfo.value.page.forEach(item => {
+    const sectionsTitle = item.sectionsTitle || '正片'
+    if (!Array.isArray(temp[sectionsTitle])) {
+      temp[sectionsTitle] = []
+    }
+    temp[sectionsTitle].push(item)
+  })
+  for (const sectionsTitle in temp) {
+    res.push({
+      title: sectionsTitle,
+      data: temp[sectionsTitle]
+    })
+  }
+
+  return res
+})
 
 const cancel = () => {
   visible.value = false
@@ -193,13 +256,18 @@ defineExpose({
       width: 358px;
     }
   }
+  .video-content {
+    justify-content: flex-start;
+  }
   .video-item{
     display: flex;
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
-    width: 100px;
+    // width: 100px;
     height: 50px;
+    max-width: 140px;
+    min-width: 50px;
     border: 1px solid #eeeeee;
     background: #ffffff;
     margin: 0px 18px 18px 0px;
@@ -235,6 +303,12 @@ defineExpose({
       padding: 0 4px;
       border-bottom-left-radius: 10px;
       border-top-right-radius: 6px;
+      &[data-content="限免"] {
+        background-color: rgb(255, 127, 36);
+      }
+      &[data-content="预告"] {
+        background-color: rgb(0, 192, 255);
+      }
     }
     .ep-title {
       position: absolute;

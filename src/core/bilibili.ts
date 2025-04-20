@@ -240,6 +240,7 @@ const parseBV = async (html: string, url: string) => {
     }
     const obj: VideoData = {
       id: '',
+      parseType: 'bv',
       title: videoData.title,
       url,
       bvid: videoData.bvid,
@@ -262,8 +263,8 @@ const parseBV = async (html: string, url: string) => {
       size: -1,
       downloadUrl: { video: '', audio: '' }
     }
-    console.log('bv')
     console.log(obj)
+    // console.log(videoData)
     return obj
   } catch (error: any) {
     throw new Error(error)
@@ -295,6 +296,7 @@ const parseList = async (html: string, url: string) => {
     // parseBVPageData()
     const obj: VideoData = {
       id: '',
+      parseType: 'list',
       title: videoData.title,
       url,
       bvid: videoData.bvid,
@@ -366,20 +368,22 @@ const parseEP = async (html: string, url: string) => {
       config
     )
     console.log('mediaInfo', mediaInfo)
+    // console.log('epListBody?.result', epListBody?.result)
     let epList: any = []
     if (Array.isArray(epListBody?.result?.episodes)) {
       epList = epList.concat(epListBody?.result?.episodes)
     }
+    // console.log('epListBody?.result?.section', epListBody?.result?.section)
     if (Array.isArray(epListBody?.result?.section)) {
       epListBody?.result?.section.forEach((item: any) => {
         if (Array.isArray(item?.episodes)) {
           // epList = epList.concat(item?.episodes)
           item?.episodes.forEach((epItem: any) => {
-            console.log('epItem', epItem)
+            // console.log('epItem', epItem, item.title)
             if (epItem.cid !== 0 && epItem.ep_id !== 0) {
               epList.push({
                 ...epItem,
-                epTitle: item.title
+                sectionsTitle: item.title
               })
             }
           })
@@ -406,6 +410,7 @@ const parseEP = async (html: string, url: string) => {
     }
     const obj: VideoData = {
       id: '',
+      parseType: 'ep',
       title: h1Title,
       url,
       bvid: epInfo.bvid,
@@ -663,7 +668,8 @@ interface IParseBVPageData {
   ugc_season: {
     title: string,
     sections: [{
-      episodes: any[]
+      episodes: any[],
+      title: string
     }]
   }
 }
@@ -673,10 +679,17 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
   if (len === 1) {
     if (ugc_season && Array.isArray(ugc_season.sections) && ugc_season.sections.length > 0) {
       // TODO: 可能存在多个子合集 合并到一起
-      const pages = ugc_season.sections.map(item => item.episodes).flat()
+      const pages = ugc_season.sections.map(item => {
+        return item.episodes.map(_item => ({
+          sectionsTitle: item.title,
+          ..._item
+        }))
+      }).flat()
       // const pages = ugc_season.sections[sectionsIndex].episodes
       return pages.map((item, index) => ({
         title: item.title,
+        showTitle: item.title,
+        sectionsTitle: item?.sectionsTitle || '',
         // 合集名
         collectionName: ugc_season.title || '',
         page: index + 1,
@@ -689,6 +702,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
     return [
       {
         title,
+        showTitle: title,
         url,
         page: pages[0].page,
         duration: formatSecond(pages[0].duration),
@@ -699,6 +713,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
   } else {
     return pages.map(item => ({
       title: item.part,
+      showTitle: item.part,
       page: item.page,
       collectionName: title,
       duration: formatSecond(item.duration),
@@ -712,17 +727,21 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
 // 处理ep多p逻辑
 const parseEPPageData = (epList: any[], collectionName: string): Page[] => {
   // console.log(epList, collectionName)
-  return epList.map((item, index) => ({
-    title: item.share_copy,
-    page: index + 1,
-    duration: formatSecond(item.duration / 1000),
-    cid: item.cid,
-    bvid: item.bvid,
-    url: item.share_url,
-    collectionName,
-    badge: item.badge || '',
-    epTitle: item.epTitle || ''
-  }))
+  return epList.map((item, index) => {
+    return {
+      title: item.share_copy,
+      showTitle: item?.title || item?.show_title || item?.long_title || item?.share_copy,
+      longTitle: item?.share_copy,
+      page: index + 1,
+      duration: formatSecond(item.duration / 1000),
+      cid: item.cid,
+      bvid: item.bvid,
+      url: item.share_url,
+      collectionName,
+      badge: item.badge || '',
+      sectionsTitle: item.sectionsTitle || ''
+    }
+  })
 }
 
 // 处理 list 多p逻辑
@@ -738,6 +757,7 @@ const parseListPageData = (url: string, resourceList: any[], playlist: any, medi
     const duration = item?.pages?.[0]?.duration || item.duration
     return {
       title,
+      showTitle: title,
       // page: item.page,
       page: index + 1,
       collectionName: mediaListInfo.title,
