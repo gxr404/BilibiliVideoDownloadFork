@@ -9,6 +9,7 @@
     title="当前视频信息"
     okText="下载"
     cancelText="取消"
+    centered
     :width="(videoInfo?.page && videoInfo?.page.length) > 40 ? 700 : undefined"
     @cancel="cancel"
     @ok="handleDownload">
@@ -231,7 +232,8 @@ defineExpose({
 
 <style scoped lang="less">
 .video-modal{
-  height: 260px;
+  min-height: 260px;
+  max-height: 380px;
   overflow-y: overlay;
   padding-left: 12px;
   .video-info{
