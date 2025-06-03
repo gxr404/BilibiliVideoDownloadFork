@@ -349,13 +349,17 @@ const parseEP = async (html: string, url: string) => {
 
     // https://api.bilibili.com/pgc/view/web/ep/list?season_id=2308
 
-    const { video_info, view_info, play_view_business_info } = __playinfo__.result || {}
+    // const { video_info, view_info, play_view_business_info } = __playinfo__.result || {}
+    // const { ep_id } = view_info?.report || {}
+    const videoInfo = __playinfo__?.result?.video_info || __playinfo__?.raw?.data?.video_info
+    const viewInfo = __playinfo__?.result?.view_info || __playinfo__?.body.viewInfo
+    const playViewBusinessInfo = __playinfo__?.result?.play_view_business_info || __playinfo__?.body.playViewBusinessInfo
 
-    const { ep_id } = view_info?.report || {}
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
     // const { epInfo, epList } = {} as any
     const mediaInfo = nextData.props.pageProps.dehydratedState.queries[1].state.data
-    const epInfo = play_view_business_info.episode_info
+    const epInfo = playViewBusinessInfo?.episode_info || playViewBusinessInfo?.episodeInfo
+    const ep_id = viewInfo?.report?.ep_id || epInfo?.ep_id
     const config = {
       headers: {
         'User-Agent': randUserAgent(),
@@ -394,7 +398,7 @@ const parseEP = async (html: string, url: string) => {
     const h1Title = mediaInfo.title
     // 获取视频下载地址
     let acceptQuality = null
-    const downLoadData = __playinfo__.result.video_info
+    const downLoadData = videoInfo
     try {
       // let downLoadData: any = html.match(/\<script\>window\.\_\_playinfo\_\_\=([\s\S]*?)\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=/)
       // if (!downLoadData) throw new Error('parse ep error')
