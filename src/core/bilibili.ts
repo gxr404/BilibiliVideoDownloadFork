@@ -341,15 +341,15 @@ const parseEP = async (html: string, url: string) => {
     const nextDataMatch = html.match(/\<script id="__NEXT_DATA__" type="application\/json"\>([\s\S]*?)\<\/script\>/)
     if (!nextDataMatch) throw new Error('parse ep error')
     const nextData = JSON.parse(nextDataMatch[1])
+    const playurlSSRData = html.match(/const playurlSSRData = ({[\s\S]*?})\n\s*if \(playurlSSRData.*?\) {/)
 
-    const playurlSSRData = html.match(/const playurlSSRData = ({[\s\S]*?}}}})\n\s*if \(playurlSSRData\) {/)
     if (!playurlSSRData) throw new Error('parse ep error')
 
     const __playinfo__ = JSON.parse(playurlSSRData[1])
 
     // https://api.bilibili.com/pgc/view/web/ep/list?season_id=2308
 
-    const { video_info, view_info, play_view_business_info } = __playinfo__.result
+    const { video_info, view_info, play_view_business_info } = __playinfo__.result || {}
 
     const { ep_id } = view_info?.report || {}
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
