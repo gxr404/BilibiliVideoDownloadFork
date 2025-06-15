@@ -223,7 +223,31 @@ const parseBV = async (html: string, url: string) => {
   try {
     const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)/)
     if (!videoInfo) throw new Error(`parse bv error [videoInfo]: ${url}`)
-    const { videoData } = JSON.parse(videoInfo[1])
+    const videoInfoData = JSON.parse(videoInfo[1])
+    let videoData = videoInfoData.videoData
+    // 2025-06-15
+    // 特殊情况:  https://www.bilibili.com/video/BV1RSTEzjEpL BV没有videoData
+    if (!videoData && videoInfoData.videoInfo) {
+      const _videoInfo = videoInfoData.videoInfo
+      videoData = Object.assign({
+        stat: {
+          view: _videoInfo?.viewCount,
+          danmaku: _videoInfo?.danmakuCount,
+          reply: undefined
+        },
+        owner: {
+          name: _videoInfo?.upName,
+          mid: _videoInfo?.upMid
+        }
+      }, _videoInfo)
+
+      if (Array.isArray(videoInfoData?.sectionEpisodes)) {
+        const findItem = videoInfoData?.sectionEpisodes.find((item: any) => item.bvid === _videoInfo.bvid)
+        videoData.pic = findItem.cover
+        // videoData.pages = videoInfoData?.sectionEpisodes
+      }
+    }
+
     // 获取视频下载地址
     let acceptQuality = null
     try {
