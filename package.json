@@ -3,6 +3,10 @@
   "productName": "BilibiliVideoDownloadFork",
   "version": "0.0.31",
   "private": true,
+  "author":{
+    "name": "gxr404",
+    "email":"gxr40404@gamil.com"
+  },
   "homepage": "https://github.com/gxr404/BilibiliVideoDownloadFork",
   "scripts": {
     "serve": "vue-cli-service serve",
