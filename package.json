@@ -1,7 +1,7 @@
 {
   "name": "bilibilivideodownload-fork",
   "productName": "BilibiliVideoDownloadFork",
-  "version": "0.0.30",
+  "version": "0.0.31",
   "private": true,
   "homepage": "https://github.com/gxr404/BilibiliVideoDownloadFork",
   "scripts": {
