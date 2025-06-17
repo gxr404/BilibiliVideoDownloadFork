@@ -1,11 +1,11 @@
 {
   "name": "bilibilivideodownload-fork",
   "productName": "BilibiliVideoDownloadFork",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "private": true,
-  "author":{
+  "author": {
     "name": "gxr404",
-    "email":"gxr40404@gamil.com"
+    "email": "gxr40404@gamil.com"
   },
   "homepage": "https://github.com/gxr404/BilibiliVideoDownloadFork",
   "scripts": {
