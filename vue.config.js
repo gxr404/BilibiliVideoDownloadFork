@@ -47,7 +47,8 @@ module.exports = {
           target: 'nsis'
         },
         linux: {
-          icon: 'build/icons'
+          icon: 'build/icons',
+          target: ['AppImage', 'deb']
         }
       }
     }

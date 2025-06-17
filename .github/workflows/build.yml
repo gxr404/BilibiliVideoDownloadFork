@@ -69,7 +69,7 @@ jobs:
       - name: Build ubuntu app
         if: matrix.os == 'ubuntu-latest'
         run: |
-          npm run electron:build
+          npm run electron:build -- --x64 --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -92,7 +92,7 @@ jobs:
       - name: cleanup artifacts for ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: |
-          npx rimraf "dist_electron/!(*.AppImage)"
+          npx rimraf "dist_electron/!(*.AppImage|*.deb)"
 
       # step6: upload artifacts
       - name: upload artifacts
