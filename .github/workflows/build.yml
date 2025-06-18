@@ -77,10 +77,12 @@ jobs:
       - name: Build ubuntu arm64 app in Docker
         if: matrix.os == 'ubuntu-latest'
         run: |
+          mkdir -p ~/.cache/electron-builder
           docker run --rm \
             -v ${{ github.workspace }}:/project \
             -w /project \
             -e GH_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            -v ~/.cache/electron-builder:/home/builder/.cache/electron-builder \
             --user $(id -u):$(id -g) \
             electronuserland/builder \
             npm run electron:build -- --linux deb --arm64
