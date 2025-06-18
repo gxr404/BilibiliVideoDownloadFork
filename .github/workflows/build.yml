@@ -26,7 +26,7 @@ jobs:
         # os: [windows-latest, macos-latest, 'ubuntu-latest']
         # macos-13 is an intel runner, macos-14 is apple silicon
         # https://docs.github.com/zh/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-        os: [ubuntu-latest, ubuntu-22.04-arm, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
 
     # create steps
     steps:
@@ -73,10 +73,17 @@ jobs:
           npm run electron:build -- --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build ubuntu arm64 app
-        if: matrix.os == 'ubuntu-22.04-arm'
+
+      - name: Build ubuntu arm64 app in Docker
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          npm run electron:build -- --arm64
+          docker run --rm \
+            -v ${{ github.workspace }}:/project \
+            -w /project \
+            -e GH_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            -v ~/.cache/electron:/root/.cache/electron \
+            electronuserland/builder \
+            npm run electron:build -- --linux deb --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,11 +102,6 @@ jobs:
         if: matrix.os == 'macos-14'
         run: |
           npx rimraf "dist_electron/!(*.dmg)"
-
-      - name: cleanup artifacts for ubuntu arm64
-        if: matrix.os == 'ubuntu-22.04-arm'
-        run: |
-          npx rimraf "dist_electron/!(*.AppImage|*.deb)"
 
       - name: cleanup artifacts for ubuntu
         if: matrix.os == 'ubuntu-latest'
