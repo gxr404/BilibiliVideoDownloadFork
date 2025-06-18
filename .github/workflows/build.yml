@@ -81,7 +81,6 @@ jobs:
             -v ${{ github.workspace }}:/project \
             -w /project \
             -e GH_TOKEN=${{ secrets.GITHUB_TOKEN }} \
-            -v ~/.cache/electron:/root/.cache/electron \
             --user $(id -u):$(id -g) \
             electronuserland/builder \
             npm run electron:build -- --linux deb --arm64
