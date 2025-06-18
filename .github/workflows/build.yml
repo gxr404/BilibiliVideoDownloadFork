@@ -25,7 +25,7 @@ jobs:
       matrix:
         # os: [windows-latest, macos-latest, 'ubuntu-latest']
         # macos-13 is an intel runner, macos-14 is apple silicon
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
 
     # create steps
     steps:
@@ -69,7 +69,13 @@ jobs:
       - name: Build ubuntu app
         if: matrix.os == 'ubuntu-latest'
         run: |
-          npm run electron:build -- --x64 --arm64
+          npm run electron:build -- --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build ubuntu arm64 app
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: |
+          npm run electron:build -- --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -88,6 +94,11 @@ jobs:
         if: matrix.os == 'macos-14'
         run: |
           npx rimraf "dist_electron/!(*.dmg)"
+
+      - name: cleanup artifacts for ubuntu arm64
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: |
+          npx rimraf "dist_electron/!(*.AppImage|*.deb)"
 
       - name: cleanup artifacts for ubuntu
         if: matrix.os == 'ubuntu-latest'
