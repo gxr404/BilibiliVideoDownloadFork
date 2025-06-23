@@ -375,15 +375,17 @@ const parseEP = async (html: string, url: string) => {
 
     // const { video_info, view_info, play_view_business_info } = __playinfo__.result || {}
     // const { ep_id } = view_info?.report || {}
+    console.log('__playinfo__', __playinfo__)
     const videoInfo = __playinfo__?.result?.video_info || __playinfo__?.raw?.data?.video_info
-    const viewInfo = __playinfo__?.result?.view_info || __playinfo__?.body.viewInfo
-    const playViewBusinessInfo = __playinfo__?.result?.play_view_business_info || __playinfo__?.body.playViewBusinessInfo
+    const viewInfo = __playinfo__?.result?.view_info || __playinfo__?.body?.viewInfo
+    const playViewBusinessInfo = __playinfo__?.result?.play_view_business_info || __playinfo__?.body?.playViewBusinessInfo
 
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
     // const { epInfo, epList } = {} as any
-    const mediaInfo = nextData.props.pageProps.dehydratedState.queries[1].state.data
+    const mediaInfo = nextData?.props?.pageProps?.dehydratedState?.queries?.[1]?.state?.data
     const epInfo = playViewBusinessInfo?.episode_info || playViewBusinessInfo?.episodeInfo
     const ep_id = viewInfo?.report?.ep_id || epInfo?.ep_id
+    console.log('ep_id', ep_id)
     const config = {
       headers: {
         'User-Agent': randUserAgent(),

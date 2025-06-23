@@ -68,6 +68,7 @@ const download = async () => {
     loading.value = false
     videoModal.value.open(videoInfo)
   } catch (error: any) {
+    // console.error(error)
     loading.value = false
     if (error === -1) {
       message.error('解析错误或者不支持当前视频')
