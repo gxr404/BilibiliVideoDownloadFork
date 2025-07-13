@@ -383,9 +383,13 @@ const parseEP = async (html: string, url: string) => {
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
     // const { epInfo, epList } = {} as any
     const mediaInfo = nextData?.props?.pageProps?.dehydratedState?.queries?.[1]?.state?.data
-    const epInfo = playViewBusinessInfo?.episode_info || playViewBusinessInfo?.episodeInfo
+    let epInfo = playViewBusinessInfo?.episode_info || playViewBusinessInfo?.episodeInfo
+    // bvid丢失
+    if (!epInfo.bvid) {
+      epInfo = Object.assign({}, epInfo, __playinfo__?.result?.arc)
+    }
     const ep_id = viewInfo?.report?.ep_id || epInfo?.ep_id
-    console.log('ep_id', ep_id)
+    console.log('epInfo', epInfo)
     const config = {
       headers: {
         'User-Agent': randUserAgent(),
