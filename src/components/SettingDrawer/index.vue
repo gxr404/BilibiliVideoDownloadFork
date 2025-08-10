@@ -14,7 +14,9 @@
         :key="index"
         :labelCol="formItemLayout"
         :wrapperCol="formItemLayout"
-        v-bind="validateInfos[item.name]">
+        v-bind="validateInfos[item.name]"
+        @click="formItemClick(item.type)"
+        >
         <template #label>
           {{ item.label }}
           <a-tooltip>
@@ -43,8 +45,7 @@
           :placeholder="item.placeholder"
           readonly
           class="custom-input"
-          v-model:value="modelRef[item.name]"
-          @click="openDirDialog">
+          v-model:value="modelRef[item.name]">
           <template #suffix>
             <FolderOutlined style="color: rgba(0,0,0,.45)" />
           </template>
@@ -114,7 +115,15 @@ const openDirDialog = () => {
       console.log(res)
       modelRef.downloadPath = res
       store.settingStore().setDownloadPath(res)
+    }).catch((e: any) => {
+      console.error('openDirDialog', e)
     })
+}
+
+function formItemClick (type: string) {
+  if (type === 'downloadPath') {
+    openDirDialog()
+  }
 }
 
 const quitLogin = () => {
