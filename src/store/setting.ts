@@ -6,6 +6,7 @@ export const settingStore = defineStore('setting', {
   state: () => {
     const setting: SettingData = {
       downloadPath: '',
+      defaultDownladPath: '',
       SESSDATA: '',
       isMerge: true,
       isDelete: true,
@@ -23,6 +24,7 @@ export const settingStore = defineStore('setting', {
   getters: {
     getSetting: (state) => ({
       downloadPath: state.downloadPath,
+      defaultDownladPath: state.defaultDownladPath,
       SESSDATA: state.SESSDATA,
       isMerge: state.isMerge,
       isDelete: state.isDelete,

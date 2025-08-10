@@ -30,6 +30,7 @@ export const videoData: VideoData = {
 
 export const settingData: SettingData = {
   downloadPath: '',
+  defaultDownladPath: '',
   SESSDATA: '',
   isMerge: true,
   isDelete: true,

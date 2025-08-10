@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('electron', {
   getVideoSize (id) {
     return ipcRenderer.invoke('get-video-size', id)
   },
+  checkDownaldPathExist () {
+    return ipcRenderer.invoke('check-download-path-exist')
+  },
   closeApp () {
     ipcRenderer.send('close-app')
   },

@@ -219,6 +219,11 @@ ipcMain.handle('get-video-size', (event, id: string) => {
   }
 })
 
+ipcMain.handle('check-download-path-exist', () => {
+  const setting: SettingData = store.get('setting')
+  return fs.existsSync(setting.downloadPath) && fs.statSync(setting.downloadPath).isDirectory()
+})
+
 // 关闭app
 ipcMain.on('close-app', () => {
   handleCloseApp()
@@ -290,12 +295,14 @@ function initStore () {
   if (!setting) {
     store.set('setting', {
       ...settingData,
-      downloadPath: app.getPath('downloads')
+      downloadPath: app.getPath('downloads'),
+      defaultDownladPath: app.getPath('downloads')
     })
   } else {
     store.set('setting', {
       ...settingData,
-      ...store.get('setting')
+      ...store.get('setting'),
+      defaultDownladPath: app.getPath('downloads')
     })
   }
   if (!taskList) {

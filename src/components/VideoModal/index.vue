@@ -111,6 +111,7 @@
 <script lang="ts" setup>
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import { store } from '../../store'
 import { getDownloadList, addDownload } from '../../core/bilibili'
 import { userQuality } from '../../assets/data/quality'
@@ -159,10 +160,14 @@ const cancel = () => {
 }
 
 const handleDownload = async () => {
+  const downaldPathExist = await window.electron.checkDownaldPathExist()
+  if (!downaldPathExist) {
+    message.error('保存视频的文件夹不存在，请在“设置 → 下载地址”中选择一个有效路径')
+    return
+  }
   confirmLoading.value = true
   // 获取当前选中视频的下载数据
   const list = await getDownloadList(toRaw(videoInfo.value), toRaw(selected.value), quality.value, undefined, undefined, saveFilePrefix.value)
-  console.log('list-->', list)
   const taskList = addDownload(list)
   store.taskStore().setTask(taskList)
   let count = 0

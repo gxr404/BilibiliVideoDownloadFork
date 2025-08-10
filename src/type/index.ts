@@ -1,5 +1,6 @@
 export interface SettingData {
   downloadPath: string,
+  defaultDownladPath: string,
   SESSDATA: string,
   isMerge: boolean,
   isDelete: boolean,
@@ -15,6 +16,7 @@ export interface SettingData {
 
 export interface SettingDataEasy {
   downloadPath?: string,
+  defaultDownladPath?: string,
   SESSDATA?: string,
   isMerge?: boolean,
   isDelete?: boolean,
