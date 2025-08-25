@@ -1,4 +1,4 @@
-export * from './handleOldVerSetting'
+// export * from './handleOldVerSetting'
 export * from './formatSecond'
 export * from './filterTitle'
 export * from './sleep'

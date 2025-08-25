@@ -1,5 +1,11 @@
 <template>
-  <a-config-provider :locale="zhCN">
+  <a-config-provider
+    :locale="zhCN"
+    :theme="{
+      token: {
+        colorPrimary: '#fb7299'
+      },
+    }">
     <!-- <TabBar /> -->
     <CheckUpdate ref="checkUpdate" />
     <div class="warp">
@@ -42,10 +48,10 @@
               </div>
             </div>
             <div class="item">
-              <SettingOutlined :style="{fontSize: '22px'}" @click="settingDrawer.open()" />
+              <SettingOutlined :style="{fontSize: '22px'}" @click="settingDrawer?.open()" />
             </div>
             <div class="item">
-              <InfoCircleOutlined :style="{fontSize: '22px'}" @click="userModal.toggleVisible()" />
+              <InfoCircleOutlined :style="{fontSize: '22px'}" @click="userModal?.toggleVisible()" />
             </div>
           </div>
         </div>
@@ -61,18 +67,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import zh_CN from 'ant-design-vue/es/locale/zh_CN'
 import { UserOutlined, HomeOutlined, DownloadOutlined, SettingOutlined, InfoCircleOutlined, CrownFilled } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import TitleBar from './components/TitleBar/index.vue'
-import TabBar from './components/TabBar/index.vue'
+// import TabBar from './components/TabBar/index.vue'
 import CheckUpdate from './components/CheckUpdate/index.vue'
 import { pinia, store } from './store'
 import { checkLogin, addDownload } from './core/bilibili'
-import { downloadDanmaku } from './core/danmaku'
 import { SettingData, TaskData, TaskList } from './type'
 import { STATUS } from './assets/data/status'
 import UserModal from './components/UserModal/index.vue'
@@ -83,14 +88,18 @@ import pageInfo from '../package.json'
 const router = useRouter()
 const route = useRoute()
 
-const settingDrawer = ref<any>(null)
-const userModal = ref<any>(null)
-const loginModal = ref<any>(null)
+type SettingDrawerInstance = InstanceType<typeof SettingDrawer>
+const settingDrawer = ref<SettingDrawerInstance | null>(null)
+type UserModalInstance = InstanceType<typeof UserModal>
+const userModal = ref<UserModalInstance | null>(null)
+type LoginModalInstance = InstanceType<typeof LoginModal>
+const loginModal = ref<LoginModalInstance | null>(null)
 const isLogin = ref(false)
 
 dayjs.locale('zh-cn')
 const zhCN = ref(zh_CN)
-const checkUpdate = ref<any>(null)
+type CheckUpdateInstance = InstanceType<typeof CheckUpdate>
+const checkUpdate = ref<CheckUpdateInstance | null>(null)
 
 const onMinimize = () => {
   window.electron.minimizeApp()
@@ -109,13 +118,59 @@ function goDownloadList () {
 }
 
 function login () {
-  console.log(loginModal.value)
-  loginModal.value.open()
+  loginModal.value?.open()
 }
 function quitLogin () {
   store.baseStore().setLoginStatus(0)
   store.settingStore().setSESSDATA('')
   store.settingStore().setFace('')
+}
+
+async function downloadVideoStatusHandle ({ id, status, progress }: { id: string, status: number, progress: number }) {
+  const tempTask = store.taskStore(pinia).getTask(id)
+  if (tempTask && tempTask?.progress && tempTask?.progress > progress) return
+
+  const task = tempTask
+    ? JSON.parse(JSON.stringify(tempTask))
+    : null
+  // 成功和失败 更新 pinia electron-store，减少正在下载数；检查taskList是否有等待中任务，有则下载
+  if (task && [STATUS.COMPLETED, STATUS.FAIL].includes(status)) {
+    window.log.info(`${id} ${status}`)
+    let size = -1
+    if (status === STATUS.COMPLETED) {
+      size = await window.electron.getVideoSize(id)
+    }
+    store.taskStore(pinia).setTask([{ ...task, status, progress, size }], false)
+    store.baseStore(pinia).reduceDownloadingTaskCount(1)
+    // 检查下载
+    const taskList = store.taskStore(pinia).taskList
+    let allowDownload: TaskData[] = []
+    taskList.forEach((value) => {
+      if (value.status === STATUS.PENDING) {
+        allowDownload.push(JSON.parse(JSON.stringify(value)))
+      }
+    })
+    allowDownload = addDownload(allowDownload)
+    let count = 0
+    for (const key in allowDownload) {
+      const item = allowDownload[key]
+      if (item.status === STATUS.PLAN_START) {
+        window.electron.downloadVideo(item)
+        count += 1
+      }
+      // await sleep(300)
+    }
+    store.baseStore(pinia).addDownloadingTaskCount(count)
+  }
+  // 视频下载中 音频下载中 合成中 只更新pinia
+  if (task && [
+    STATUS.PLAN_START,
+    STATUS.VIDEO_DOWNLOADING,
+    STATUS.AUDIO_DOWNLOADING,
+    STATUS.MERGING
+  ].includes(status)) {
+    store.taskStore(pinia).setTaskEasy([{ ...task, status, progress }])
+  }
 }
 
 onMounted(() => {
@@ -138,56 +193,13 @@ onMounted(() => {
     if (taskId) store.taskStore(pinia).setRightTaskId(taskId)
   })
   // 监听下载进度
-  window.electron.on('download-video-status', async ({ id, status, progress }: { id: string, status: number, progress: number }) => {
-    const tempTask = store.taskStore(pinia).getTask(id)
-    const task = tempTask
-      ? JSON.parse(JSON.stringify(tempTask))
-      : null
-    // 成功和失败 更新 pinia electron-store，减少正在下载数；检查taskList是否有等待中任务，有则下载
-    if (task && [STATUS.COMPLETED, STATUS.FAIL].includes(status)) {
-      window.log.info(`${id} ${status}`)
-      let size = -1
-      if (status === STATUS.COMPLETED) {
-        size = await window.electron.getVideoSize(id)
-      }
-      store.taskStore(pinia).setTask([{ ...task, status, progress, size }], false)
-      store.baseStore(pinia).reduceDownloadingTaskCount(1)
-      // 检查下载
-      const taskList = store.taskStore(pinia).taskList
-      let allowDownload: TaskData[] = []
-      taskList.forEach((value) => {
-        if (value.status === STATUS.PENDING) {
-          allowDownload.push(JSON.parse(JSON.stringify(value)))
-        }
-      })
-      allowDownload = addDownload(allowDownload)
-      let count = 0
-      for (const key in allowDownload) {
-        const item = allowDownload[key]
-        if (item.status === STATUS.PLAN_START) {
-          window.electron.downloadVideo(item)
-          count += 1
-        }
-        // await sleep(300)
-      }
-      store.baseStore(pinia).addDownloadingTaskCount(count)
-    }
-    // 视频下载中 音频下载中 合成中 只更新pinia
-    if (task && [
-      STATUS.PLAN_START,
-      STATUS.VIDEO_DOWNLOADING,
-      STATUS.AUDIO_DOWNLOADING,
-      STATUS.MERGING
-    ].includes(status)) {
-      store.taskStore(pinia).setTaskEasy([{ ...task, status, progress }])
-    }
-  })
-  // 下载弹幕
-  window.electron.on('download-danmuku', (cid: number, title: string, path: string) => {
-    downloadDanmaku(cid, title, path)
-  })
+  window.electron.on('download-video-status', downloadVideoStatusHandle)
   // 检查软件更新
-  checkUpdate.value.checkUpdate()
+  checkUpdate.value?.checkUpdate()
+})
+
+onUnmounted(() => {
+  window.electron.off('download-video-status', downloadVideoStatusHandle)
 })
 </script>
 

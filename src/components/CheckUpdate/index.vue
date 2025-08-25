@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="open"
     title="有新版本了"
     okText="更新"
     cancelText="取消"
@@ -16,20 +16,19 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import packageInfo from '../../../package.json'
 
-const visible = ref<boolean>(false)
+const open = ref<boolean>(false)
 const newVersion = ref<string>('')
 const oldVersion = ref<string>(packageInfo.version)
 const updateContent = ref<string>('')
 const url = ref<string>('')
 
 const cancel = () => {
-  visible.value = false
+  open.value = false
 }
 
 const handleOk = () => {
-  console.log('handleOk')
   window.electron.openBrowser(url.value)
-  visible.value = false
+  open.value = false
 }
 
 const checkUpdate = async () => {
@@ -38,18 +37,18 @@ const checkUpdate = async () => {
     newVersion.value = body.tag_name.substr(1)
     url.value = body.html_url
     updateContent.value = body.body
-    const newVersionArray = body.tag_name.substr(1).split('.').map((item: any) => Number(item))
+    const newVersionArray = body.tag_name.substr(1).split('.').map((item: AnyObject) => Number(item))
     const oldVersionArray = oldVersion.value.split('.').map(item => Number(item))
     if (newVersionArray[0] > oldVersionArray[0]) {
-      visible.value = true
+      open.value = true
       return
     }
     if (newVersionArray[1] > oldVersionArray[1]) {
-      visible.value = true
+      open.value = true
       return
     }
     if (newVersionArray[2] > oldVersionArray[2]) {
-      visible.value = true
+      open.value = true
     }
   } catch (error) {
     message.error(`检查更新失败：${error}`)

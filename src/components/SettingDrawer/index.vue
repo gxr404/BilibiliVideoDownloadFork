@@ -29,7 +29,7 @@
         <template v-if="item.type === 'status'">
           <span :class="['dot', loginStatus === 0 ? 'offline' : 'online']"></span>
           {{ loginStatusText[loginStatus] }}
-          <LoginOutlined v-if="loginStatus === 0" @click="loginModal.open()" />
+          <LoginOutlined v-if="loginStatus === 0" @click="loginModal?.open()" />
           <a-popconfirm
             v-else
             title="你确定要退出登录吗?"
@@ -75,7 +75,8 @@ import LoginModal from '../LoginModal/index.vue'
 const { loginStatus } = storeToRefs(store.baseStore())
 const { downloadPath, isDanmaku, isDelete, isFolder, isMerge, isSubtitle, downloadingMaxSize, formatFileNameVal } = storeToRefs(store.settingStore())
 
-const loginModal = ref<any>(null)
+type LoginModalInstance = InstanceType<typeof LoginModal>
+const loginModal = ref<LoginModalInstance | null>(null)
 const visible = ref<boolean>(false)
 const useForm = Form.useForm
 const modelRef = reactive(settingData)
@@ -112,10 +113,9 @@ const hide = () => {
 const openDirDialog = () => {
   window.electron.openDirDialog()
     .then((res: string) => {
-      console.log(res)
       modelRef.downloadPath = res
       store.settingStore().setDownloadPath(res)
-    }).catch((e: any) => {
+    }).catch((e: unknown) => {
       console.error('openDirDialog', e)
     })
 }

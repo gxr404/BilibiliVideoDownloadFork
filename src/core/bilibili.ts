@@ -1,9 +1,9 @@
 import pLimit from 'p-limit'
-import { formatSecond, randUserAgent, getWbiKeys, encWbi, formatFileName } from '../utils'
+import { formatSecond, randUserAgent, getWbiKeys, encWbi, formatFileName, filterTitle } from '../utils'
 import { qualityMap } from '../assets/data/quality'
 import { customAlphabet } from 'nanoid'
 import alphabet from '../assets/data/alphabet'
-import { VideoData, Page, DownloadUrl, Subtitle, TaskData, Audio } from '../type'
+import { VideoData, Page, DownloadUrl, Subtitle, TaskData } from '../type'
 import { store, pinia } from '../store'
 import { STATUS } from '../assets/data/status'
 
@@ -18,7 +18,7 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
   const downloadList: VideoData[] = []
   const limit = pLimit(8)
   const selectedLen = selected.length
-  const promiseList = selected.map((item, index) => {
+  const promiseList = selected.map((item) => {
     return limit(async () => {
       const currentPage = item
       // 请求选中清晰度视频下载地址
@@ -277,7 +277,7 @@ const parseBV = async (html: string, url: string) => {
       reply: videoData.stat.reply,
       duration: formatSecond(videoData.duration),
       up: videoData.hasOwnProperty('staff') ? videoData.staff.map((item: any) => ({ name: item.name, mid: item.mid })) : [{ name: videoData.owner.name, mid: videoData.owner.mid }],
-      qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
+      qualityOptions: acceptQuality.accept_quality.map((item: keyof typeof qualityMap) => ({ label: qualityMap[item as keyof typeof qualityMap], value: item })),
       page: parseBVPageData(videoData, url),
       subtitle: [],
       video: acceptQuality.video ? acceptQuality.video.map((item: any) => ({ id: item.id, cid: videoData.cid, url: item.baseUrl })) : [],
@@ -287,7 +287,7 @@ const parseBV = async (html: string, url: string) => {
       size: -1,
       downloadUrl: { video: '', audio: '' }
     }
-    console.log(obj)
+    // console.log(obj)
     // console.log(videoData)
     return obj
   } catch (error: any) {
@@ -333,7 +333,7 @@ const parseList = async (html: string, url: string) => {
       reply: videoData.stat.reply,
       duration: formatSecond(videoData.duration),
       up: videoData.hasOwnProperty('staff') ? videoData.staff.map((item: any) => ({ name: item.name, mid: item.mid })) : [{ name: videoData.owner.name, mid: videoData.owner.mid }],
-      qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
+      qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item as keyof typeof qualityMap], value: item })),
       // videoData page 如果存在 按 BVPageData解析
       page: videoData?.pages?.length > 2
         ? parseBVPageData(videoData, url)
@@ -459,7 +459,7 @@ const parseEP = async (html: string, url: string) => {
       duration: formatSecond(downLoadData?.dash?.duration / 1000),
       // duration: formatSecond(downLoadData.dash.duration / 1000),
       up: mediaInfo.upInfo ? [{ name: mediaInfo.upInfo.name, mid: mediaInfo.upInfo.mid }] : [{ name: '', mid: '' }],
-      qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item], value: item })),
+      qualityOptions: acceptQuality.accept_quality.map((item: any) => ({ label: qualityMap[item as keyof typeof qualityMap], value: item })),
       page: parseEPPageData(epList, h1Title),
       subtitle: [],
       video: acceptQuality.video ? acceptQuality.video.map((item: any) => ({ id: item.id, cid: epInfo.cid, url: item.baseUrl })) : [],
@@ -470,14 +470,14 @@ const parseEP = async (html: string, url: string) => {
       downloadUrl: { video: '', audio: '' }
     }
     console.log('ep')
-    console.log(obj)
+    // console.log(obj)
     return obj
   } catch (error: any) {
     throw new Error(error)
   }
 }
 
-const parseSS = async (html: string) => {
+export const parseSS = async (html: string) => {
   try {
     const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)\{var s\;/)
     if (!videoInfo) throw new Error('parse ss error')
@@ -528,7 +528,7 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
     const sub_key = web_keys.sub_key
     query = encWbi(params, img_key, sub_key)
   } else {
-    query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+    query = Object.entries(params).map(([key, value]) => `${key}=${value}`).join('&')
   }
 
   const res = await window.electron.got(
@@ -579,7 +579,7 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     const sub_key = web_keys.sub_key
     query = encWbi(params, img_key, sub_key)
   } else {
-    query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+    query = Object.entries(params).map(([key, value]) => `${key}=${value}`).join('&')
   }
   const res = await window.electron.got(
     `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
@@ -644,7 +644,7 @@ const getSubtitle = async (cid: number, bvid: string) => {
     // await sleep(1000)
     const { body: { data: { subtitle } } } = await window.electron.got(apiUri, config)
     // console.log('subtitle', subtitle)
-    const subtitleList: Subtitle[] = subtitle.subtitles ? subtitle.subtitles.map((item: any) => ({ title: item.lan_doc, url: item.subtitle_url })) : []
+    const subtitleList: Subtitle[] = subtitle?.subtitles ? subtitle?.subtitles.map((item: any) => ({ title: item.lan_doc, url: item.subtitle_url })) : []
     return subtitleList
   } catch (e) {
     console.error('getSubtitle', e)
@@ -725,7 +725,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
         showTitle: item.title,
         sectionsTitle: item?.sectionsTitle || '',
         // 合集名
-        collectionName: ugc_season.title || '',
+        collectionName: filterTitle(ugc_season.title) || '',
         page: index + 1,
         duration: formatSecond(item.arc.duration),
         cid: item.cid,
@@ -741,7 +741,7 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
         page: pages[0].page,
         duration: formatSecond(pages[0].duration),
         cid: pages[0].cid,
-        bvid: bvid
+        bvid
       }
     ]
   } else {
@@ -749,10 +749,10 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
       title: item.part,
       showTitle: item.part,
       page: item.page,
-      collectionName: title,
+      collectionName: filterTitle(title),
       duration: formatSecond(item.duration),
       cid: item.cid,
-      bvid: bvid,
+      bvid,
       url: `${url}?p=${item.page}`
     }))
   }
@@ -794,7 +794,7 @@ const parseListPageData = (url: string, resourceList: any[], playlist: any, medi
       showTitle: title,
       // page: item.page,
       page: index + 1,
-      collectionName: mediaListInfo.title,
+      collectionName: filterTitle(mediaListInfo.title),
       duration: formatSecond(duration),
       cid,
       bvid,
@@ -812,7 +812,7 @@ const parseListPageData = (url: string, resourceList: any[], playlist: any, medi
 // 30251 Hi-Res无损
 // 获取码率最高的audio
 const getHighQualityAudio = (audioArray: any[]) => {
-  console.log(audioArray)
+  // console.log(audioArray)
   // 优先 Hi-Res无损
   const hires = audioArray.find(item => item.id === 30251)
   if (hires) return hires

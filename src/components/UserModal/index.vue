@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="visible"
+    v-model:open="open"
     :closable="true"
     :footer="null">
     <div class="user fc ac">
@@ -23,15 +23,16 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import CheckUpdate from '../CheckUpdate/index.vue'
 import packageInfo from '../../../package.json'
 
-const checkUpdateRef = ref<any>(null)
-const visible = ref<boolean>(false)
+type CheckUpdateInstance = InstanceType<typeof CheckUpdate>
+const checkUpdateRef = ref<CheckUpdateInstance | null>(null)
+const open = ref<boolean>(false)
 const productName = ref<string>(packageInfo.productName)
 const version = ref<string>(packageInfo.version)
 const projectUrl = ref<string>(packageInfo.homepage)
 const isCheckingUpdate = ref(false)
 
 const toggleVisible = () => {
-  visible.value = !visible.value
+  open.value = !open.value
 }
 const openBrowser = (url: string):void => {
   window.electron.openBrowser(url)

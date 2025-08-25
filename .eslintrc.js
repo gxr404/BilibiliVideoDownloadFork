@@ -12,7 +12,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020
   },
-  ignorePatterns: ['src/core/xmlToAss.js'],
+  ignorePatterns: ['dist_electron', 'src/core/xmlToAss.js'],
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
@@ -23,6 +23,7 @@ module.exports = {
     'eol-last': 'off',
     'no-useless-escape': 'off',
     'no-useless-constructor': 'off',
-    '@typescript-eslint/ban-ts-comment': 0
+    '@typescript-eslint/ban-ts-comment': 0,
+    '@typescript-eslint/no-explicit-any': ['warn']
   }
 }

@@ -1,26 +1,47 @@
-import { message } from 'ant-design-vue'
-import lodash from 'lodash'
+import { omit } from 'lodash'
 import { ascendingSort } from './utils/sort'
 import { decodeDanmakuSegment, decodeDanmakuView } from './danmaku-segment'
 import { DanmakuConverterConfig, DanmakuConverter } from './danmaku-converter'
 import { XmlDanmaku } from './xml-danmaku'
-import { store, pinia } from '../../store'
-import { randUserAgent, getWbiKeys, encWbi } from '../../utils'
+// import { store, pinia } from '../../store'
+import store from '../mainStore'
+import { randUserAgent, encWbi } from '../../utils'
+import { get, set } from '@/type'
+import { normalizeContent } from './ass-utils'
+
+const fs = require('fs-extra')
+const got = require('got')
+const log = require('electron-log')
 
 function getGotConfig () {
+  // console.log(store)
   return {
     headers: {
       'User-Agent': randUserAgent(),
-      cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
+      cookie: `SESSDATA=${store.get('setting').SESSDATA || ''}`
     }
   }
 }
 
-interface GotConfig {
-  headers: {
-    'User-Agent': string,
-    cookie: string
-  }
+// interface GotConfig {
+//   headers: {
+//     'User-Agent': string,
+//     cookie: string
+//   }
+// }
+
+function gotBuffer (url: string, option: any) {
+  return new Promise((resolve, reject) => {
+    got(url, option)
+      .buffer()
+      .then((res: any) => {
+        return resolve(res)
+      })
+      .catch((error: any) => {
+        log.error(`http error: ${error.message}`)
+        return reject(error.message)
+      })
+  })
 }
 
 export class JsonDanmaku {
@@ -50,7 +71,7 @@ export class JsonDanmaku {
   // }
   get xmlDanmakus () {
     return this.jsonDanmakus.map(json => ({
-      content: json.content,
+      content: normalizeContent(json.content),
       time: json.progress ? (json.progress / 1000).toString() : '0',
       type: json.mode?.toString() ?? '1',
       fontSize: json.fontsize?.toString() ?? '25',
@@ -62,10 +83,32 @@ export class JsonDanmaku {
     }))
   }
 
+  async getWbiKeys (SESSDATA: string) {
+    const { body } = await got('https://api.bilibili.com/x/web-interface/nav', {
+      headers: {
+        'User-Agent': randUserAgent(),
+        cookie: `SESSDATA=${SESSDATA}`
+      },
+      responseType: 'json'
+    })
+    const { data: { wbi_img: { img_url, sub_url } } } = await body
+
+    return {
+      img_key: img_url.slice(
+        img_url.lastIndexOf('/') + 1,
+        img_url.lastIndexOf('.')
+      ),
+      sub_key: sub_url.slice(
+        sub_url.lastIndexOf('/') + 1,
+        sub_url.lastIndexOf('.')
+      )
+    }
+  }
+
   async fetchInfo () {
     let viewBuffer: any
     try {
-      viewBuffer = await window.electron.gotBuffer(`https://api.bilibili.com/x/v2/dm/web/view?type=1&oid=${this.cid}`, getGotConfig())
+      viewBuffer = await gotBuffer(`https://api.bilibili.com/x/v2/dm/web/view?type=1&oid=${this.cid}`, getGotConfig())
     } catch (error) {
       throw new Error('获取弹幕信息失败')
     }
@@ -73,35 +116,47 @@ export class JsonDanmaku {
       throw new Error('获取弹幕信息失败')
     }
     const view = await decodeDanmakuView(viewBuffer)
-    const { total } = view.dmSge
-    if (total === undefined) {
-      throw new Error(`获取弹幕分页数失败: ${JSON.stringify(lodash.omit(view, 'flag'))}`)
+    // console.log(view)
+    const dmCount = view?.count
+    if (dmCount === undefined) {
+      throw new Error(`获取弹幕count失败: ${JSON.stringify(omit(view, 'flag'))}`)
     }
-    const SESSDATA = store.settingStore(pinia).SESSDATA
+    const SESSDATA = store.get('setting').SESSDATA || ''
     let img_key = ''
     let sub_key = ''
     if (!SESSDATA) {
-      const web_keys = await getWbiKeys('')
+      const web_keys = await this.getWbiKeys('')
       img_key = web_keys.img_key
       sub_key = web_keys.sub_key
     }
+    const segmentsReqList = []
+    let reqFinishFlag = false
+    let index = 0
+    while (!reqFinishFlag) {
+      const res = await segmentsReq(String(this.cid), index)
+      index += 1
+      if (res?.length <= 0) {
+        reqFinishFlag = true
+      }
+      segmentsReqList.push(res)
+    }
 
-    const segments = await Promise.all(new Array(total).fill(0).map(async (_, index) => {
+    async function segmentsReq (cid: string, index: number) {
       let buffer: any
       try {
         const params = {
           type: 1,
-          oid: this.cid,
+          oid: cid,
           segment_index: index + 1
         }
-        let query = Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+        let query = Object.entries(params).map(([key, value]) => `${key}=${value}`).join('&')
         if (!SESSDATA) {
           query = encWbi(params, img_key, sub_key)
         }
         const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?${query}`
         // console.log('danmaAPI', danmaAPI)
 
-        buffer = await window.electron.gotBuffer(danmaAPI, getGotConfig())
+        buffer = await gotBuffer(danmaAPI, getGotConfig())
       } catch (error) {
         throw new Error('获取弹幕信息失败')
       }
@@ -117,10 +172,16 @@ export class JsonDanmaku {
         throw new Error(`弹幕片段${index + 1}下载失败: 获取弹幕信息失败 code -352`)
       }
       const result = await decodeDanmakuSegment(buffer)
-      // console.log(result)
+      // console.log('result.elems--->', result?.elems?.length, {
+      //   type: 1,
+      //   oid: cid,
+      //   segment_index: index + 1
+      // })
       return result.elems ?? []
-    }))
-    this.jsonDanmakus = segments.flat().sort(ascendingSort(it => it.progress))
+    }
+    // console.log('---> segmentsReqList', JSON.stringify(segmentsReqList, null, 2))
+    this.jsonDanmakus = segmentsReqList.flat().sort(ascendingSort(it => it.progress))
+    // console.log('--->', this.jsonDanmakus)
     return this
   }
 }
@@ -151,7 +212,8 @@ export const getUserDanmakuConfig = async (title: string) => {
   for (const [key, value] of Object.entries(config)) {
     if (value === undefined || value === null) {
       console.warn('danmaku config invalid for key', key, ', value =', value)
-      config[key] = defaultConfig[value]
+      // config[key] = defaultConfig[value]
+      set(config, key as keyof typeof config, get(defaultConfig, value))
     }
   }
   return config
@@ -168,13 +230,15 @@ export const convertToAssFromJson = async (danmaku: JsonDanmaku, title: string) 
 export const downloadDanmaku = async (cid: number, title: string, path: string) => {
   try {
     const danmaku = await new JsonDanmaku(cid).fetchInfo()
-    const str = await convertToAssFromJson(danmaku, title)
-    window.electron.saveDanmukuFile(str, path)
+    const content = await convertToAssFromJson(danmaku, title)
+    // window.electron.saveDanmukuFile(str, path)
+    await fs.writeFile(path, content, { encoding: 'utf8' })
   } catch (error: any) {
     console.error('error', error)
     // webpack://bilibilivideodownload-fork/./node_modules/protobufjs/src/reader.js?e5c5
     // index out of range:
     // TODO: error index out of range: 3 + 99 > 39
-    message.error(`弹幕下载错误：${error.message}`)
+    console.error(`弹幕下载错误：${error.message}`)
+    // message.error(`弹幕下载错误：${error.message}`)
   }
 }

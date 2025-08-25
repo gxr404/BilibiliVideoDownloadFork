@@ -1,7 +1,7 @@
 <template>
   <a-modal
     wrapClassName="custom-modal-padding"
-    :visible="visible"
+    :open="visible"
     :closable="false"
     :maskClosable="false"
     title="请登录Bilibili"
@@ -60,8 +60,8 @@ const oauthKey = ref<string>('')
 const countDown = ref<number>(180)
 const isCheck = ref<boolean>(true)
 const isQrLoad = ref(false)
-let timer: any = null
-let checkStatusTimer: any = null
+let timer: number | null = null
+let checkStatusTimer: number | null = null
 
 const handleOkText = () => {
   const okText = ['未扫码', '已扫码', '确认登录']
@@ -73,7 +73,6 @@ const handleOkText = () => {
 }
 
 const open = async () => {
-  console.log('open')
   visible.value = true
   await createQrcode()
   isCheck.value = true
@@ -81,13 +80,11 @@ const open = async () => {
 }
 
 const notLogin = () => {
-  console.log('notLogin')
   store.baseStore().setAllowLogin(false)
   hide()
 }
 
 const login = async () => {
-  console.log('login')
   // 获取SESSDATA
   const SESSDATA = activeTab.value === 1 ? QRSESSDATA.value : IPTSESSDATA.value
   if (activeTab.value === 1 && !SESSDATA) {
@@ -107,10 +104,10 @@ const login = async () => {
 const hide = () => {
   isCheck.value = false
   setTimeout(() => {
-    clearInterval(timer)
+    if (typeof timer === 'number') clearInterval(timer)
     timer = null
   }, 1000)
-  clearTimeout(checkStatusTimer)
+  if (typeof checkStatusTimer === 'number') clearTimeout(checkStatusTimer)
   visible.value = false
 }
 
@@ -139,9 +136,9 @@ const createQrcode = async () => {
     clearInterval(timer)
     timer = null
   }
-  timer = setInterval(() => {
+  timer = window.setInterval(() => {
     if (!countDown.value) {
-      clearInterval(timer)
+      if (typeof timer === 'number') clearInterval(timer)
       return
     }
     countDown.value -= 1
@@ -161,7 +158,7 @@ const checkScanStatus = (oauthKey: string) => {
       searchParams: {
         qrcode_key: oauthKey
       }
-    }).catch((e:any) => {
+    }).catch((e: unknown) => {
       console.log(e)
     })
     const defaultData = {
@@ -182,7 +179,7 @@ const checkScanStatus = (oauthKey: string) => {
         scanStatus.value = 1
       }
       if (visible.value) {
-        checkStatusTimer = setTimeout(() => {
+        checkStatusTimer = window.setTimeout(() => {
           run(oauthKey)
         }, 3000)
       }

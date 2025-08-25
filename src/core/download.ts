@@ -3,6 +3,7 @@ import { mergeVideoAudio } from './media'
 import { randUserAgent, sleep } from '../utils'
 import { downloadSubtitle } from './subtitle'
 import { TaskData, SettingData } from '../type'
+import { downloadDanmaku } from './danmaku'
 import store from './mainStore'
 import { throttle } from 'lodash'
 import { STATUS } from '../assets/data/status'
@@ -25,8 +26,8 @@ function handleDeleteFile (setting: SettingData, videoInfo: TaskData) {
 
 export default async (videoInfo: TaskData, event: IpcMainEvent, setting: SettingData) => {
   log.info(videoInfo.id, videoInfo.title)
-  const takeInfo = store.get(`taskList.${videoInfo.id}`)
-  log.info('mainStore', takeInfo, takeInfo && takeInfo.status)
+  // const takeInfo = store.get(`taskList.${videoInfo.id}`)
+  // log.info('mainStore', takeInfo, takeInfo && takeInfo.status)
   // if (takeInfo && takeInfo.status === STATUS.FAIL) {
   //   log.error('×××××!!!!!已经失败过的内容')
   // }
@@ -84,7 +85,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
   }
 
   log.info(`下载字幕 "${JSON.stringify(videoInfo.subtitle)}"`)
-  // 下载字幕
+  // 下载字幕 (属于额外的文件无需merge)无需await
   if (setting.isSubtitle &&
     Array.isArray(videoInfo.subtitle) &&
     videoInfo.subtitle.length > 0) {
@@ -92,9 +93,11 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
     log.info(`✅ 下载字幕完成 ${videoInfo.title}`)
   }
 
-  // 下载弹幕
+  // 下载弹幕 (属于额外的文件无需merge)无需await
   if (setting.isDanmaku) {
-    event.reply('download-danmuku', videoInfo.cid, videoInfo.title, `${fileName}.ass`)
+    // event.reply('download-danmuku', videoInfo.cid, videoInfo.title, `${fileName}.ass`)
+    downloadDanmaku(videoInfo.cid, videoInfo.title, `${fileName}.ass`)
+    log.info(`✅ 下载弹幕完成 ${videoInfo.title}`)
   }
 
   const downloadConfig = {
@@ -121,7 +124,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
   // 下载视频
   await pipeline(
     got.stream(videoInfo.downloadUrl.video, downloadConfig)
-      .on('downloadProgress', throttle(videoProgressNotify, 1000))
+      .on('downloadProgress', throttle(videoProgressNotify, 2000))
       .on('error', async (error: any) => {
         log.error(`视频下载失败：${videoInfo.title}--${error.message}`)
         log.error(`------${videoInfo.downloadUrl.video}, ${JSON.stringify(downloadConfig)}`)
@@ -143,7 +146,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
 
   log.info(`✅ 下载视频完成 ${videoInfo.title}`)
 
-  await sleep(1000)
+  // await sleep(2500)
 
   function audioProgressNotify (progress: any) {
     const updateData = {
@@ -162,7 +165,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
   // 下载音频
   await pipeline(
     got.stream(videoInfo.downloadUrl.audio, downloadConfig)
-      .on('downloadProgress', throttle(audioProgressNotify, 1000))
+      .on('downloadProgress', throttle(audioProgressNotify, 2000))
       .on('error', async (error: any) => {
         log.error(`音频下载失败：${videoInfo.title} ${error.message}`)
         const updateData = {
@@ -182,7 +185,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
   )
   log.info(`✅ 下载下载音频 ${videoInfo.title}`)
 
-  await sleep(1000)
+  // await sleep(2500)
 
   // 合成视频
   if (setting.isMerge) {

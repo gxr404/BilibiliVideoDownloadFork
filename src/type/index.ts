@@ -1,3 +1,9 @@
+type Simplify<T> = {
+  [P in keyof T]: T[P]
+}
+
+export type MenuType = 'download' | 'home'
+
 export interface SettingData {
   downloadPath: string,
   defaultDownladPath: string,
@@ -27,6 +33,8 @@ export interface SettingDataEasy {
   downloadingMaxSize?: number,
   formatFileNameVal: number,
 }
+
+export type SettingDataEasyKey = Simplify<keyof SettingDataEasy>
 
 export enum LoginStatus {
   visitor,
@@ -114,3 +122,11 @@ export interface TaskData extends VideoData {
 }
 
 export type TaskList = Map<string, TaskData>
+
+export function set<T, K extends keyof T> (obj: T, key: K, value: T[K]) {
+  obj[key] = value
+}
+
+export function get<T, K extends keyof T> (obj: T, key: K): T[K] {
+  return obj[key]
+}

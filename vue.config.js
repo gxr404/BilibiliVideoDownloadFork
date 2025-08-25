@@ -1,9 +1,14 @@
 const packageInfo = require('./package.json')
 
 module.exports = {
+  productionSourceMap: false,
   pluginOptions: {
     electronBuilder: {
-      externals: ['ffmpeg-static', 'fluent-ffmpeg'],
+      externals: [
+        'ffmpeg-static',
+        'fluent-ffmpeg',
+        '@napi-rs/canvas'
+      ],
       nodeModulesPath: ['../../node_modules', './node_modules'],
       preload: 'src/preload.js',
       builderOptions: {
@@ -64,6 +69,8 @@ module.exports = {
             // 主色
             'primary-color': '#fb7299',
             'link-color': '#fb7299',
+            'link-hover-color': '#ff9cb4',
+            'link-active-color': '#d4557d',
             'text-color': 'rgba(0, 0, 0, 0.65)',
             'primary-color2': '#00AEEC',
             'primary-color3': '#DFF6FD'

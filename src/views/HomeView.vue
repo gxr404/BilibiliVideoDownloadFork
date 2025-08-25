@@ -28,15 +28,17 @@ import VideoModal from '../components/VideoModal/index.vue'
 
 const videoUrl = ref<string | null>(null)
 const loading = ref<boolean>(false)
-const loginModal = ref<any>(null)
-const videoModal = ref<any>(null)
+
+type LoginModalInstance = InstanceType<typeof LoginModal>
+const loginModal = ref<LoginModalInstance | null>(null)
+type VideoModalInstance = InstanceType<typeof VideoModal>
+const videoModal = ref<VideoModalInstance | null>(null)
 
 const showContextmenu = () => {
   window.electron.showContextmenu('home')
 }
 
 const download = async () => {
-  console.log('download')
   loading.value = true
   if (!videoUrl.value) {
     message.warn('请输入视频地址')
@@ -55,7 +57,7 @@ const download = async () => {
     const { status } = await checkLogin(store.settingStore().SESSDATA)
     store.baseStore().setLoginStatus(status)
     if (status === 0) {
-      loginModal.value.open()
+      loginModal?.value?.open()
       loading.value = false
       return
     }
@@ -66,8 +68,10 @@ const download = async () => {
   try {
     const videoInfo = await parseHtml(body, videoType, url)
     loading.value = false
-    videoModal.value.open(videoInfo)
-  } catch (error: any) {
+    if (videoInfo !== -1) {
+      videoModal?.value?.open(videoInfo)
+    }
+  } catch (error: unknown) {
     // console.error(error)
     loading.value = false
     if (error === -1) {
