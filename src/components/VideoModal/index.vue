@@ -10,7 +10,7 @@
     okText="下载"
     cancelText="取消"
     centered
-    :width="(videoInfo?.page && videoInfo?.page.length) > 40 ? 700 : undefined"
+    :width="(videoInfo?.page && videoInfo?.page.length) > 40 ? 700 : 600"
     @cancel="cancel"
     @ok="handleDownload">
     <div class="video-modal custom-scroll-bar">
@@ -18,7 +18,7 @@
         <div class="image">
           <a-image :src="videoInfo.cover" />
         </div>
-        <div class="content fc jsa pl16">
+        <div class="content fc jsa pl16" :style="{width: (videoInfo?.page && videoInfo?.page.length) > 40 ? `460px` : `380px`}">
           <div class="text-active ellipsis-2" @click="openBrowser(videoInfo.url)">{{ videoInfo.title }}</div>
           <div class="ellipsis-1">up：<span v-for="(item, index) in videoInfo.up" :key="index" class="text-active mr8" @click="openBrowser(`https://space.bilibili.com/${item.mid}`)">{{item.name}}</span></div>
         </div>
@@ -246,7 +246,8 @@ defineExpose({
     height: 71.25px;
     .image{
       flex: none;
-      width: 114px;
+      width: 128px;
+      min-width: 128px;
       overflow: hidden;
       position: relative;
       img{
