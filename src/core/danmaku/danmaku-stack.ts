@@ -2,6 +2,8 @@ import { fixed } from './utils/fixed'
 import { DanmakuType } from './danmaku-type'
 import { Resolution, Duration, FontStyles } from './ass-danmaku'
 import { Danmaku } from './danmaku-data'
+const { createCanvas } = require('@napi-rs/canvas')
+// const { createCanvas } = require('canvas')
 
 interface TrackItem {
   start: number
@@ -50,6 +52,7 @@ export class DanmakuStack {
   danmakuHeight: number
   trackHeight: number
   trackCount: number
+  textSizeCache = new Map()
   constructor (
     font: string,
     resolution: Resolution,
@@ -62,7 +65,7 @@ export class DanmakuStack {
     this.verticalTrack = []
     this.resolution = resolution
     this.duration = duration
-    this.context = document.createElement('canvas').getContext('2d')
+    this.context = createCanvas(200, 200).getContext('2d')
     this.danmakuHeight = 0
     this.trackHeight = 0
     this.trackCount = 0
@@ -88,10 +91,30 @@ export class DanmakuStack {
   }
 
   getTextSize (danmaku: Danmaku) {
+    const key = `${danmaku.fontSize}_${danmaku.content}`
+    const cacheRes = this.textSizeCache.get(key)
+    if (cacheRes) return cacheRes
+    // if (cacheRes) {
+    //   console.log('命中缓存---》', key, cacheRes)
+    //   return cacheRes
+    // }
     this.context.font = this.fontSizes[danmaku.fontSize]
-    const metrics = this.context.measureText(danmaku.content)
-    const x = metrics.width / 2
-    return [x, this.danmakuHeight / 2]
+    try {
+      // console.log('danmaku.content --> ', this.fontSizes[danmaku.fontSize], danmaku.content)
+      const metrics = this.context.measureText(danmaku.content)
+      // console.log('metrics', metrics)
+      // const width = metrics.width * 1.33333333
+      const width = Math.round(metrics.width * 1.33333333)
+      const x = width / 2
+      // const x = metrics.width / 2
+      const res = [x, this.danmakuHeight / 2]
+      this.textSizeCache.set(key, res)
+      return res
+    } catch (e: any) {
+      console.log('measureText error', e)
+      console.log(danmaku.content)
+      return [0, 0]
+    }
   }
 
   getTags (danmaku: Danmaku, {
@@ -120,8 +143,9 @@ export class DanmakuStack {
     }
     while (overlayDanmaku && trackNumber <= this.trackCount && trackNumber >= 0)
 
-    // 如果弹幕过多, 此条就不显示了
+    // 如果弹幕过多, 此条就不显示了 TODO
     if (trackNumber > this.trackCount || trackNumber < 0) {
+      // console.log('超出', trackNumber, this.trackCount, trackNumber, danmaku.content)
       return '\\pos(0,-999)'
     }
     trackNumber -= nextTrackNumber // 减回最后的自增

@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.send('delete-store', path)
   },
   showContextmenu (type) {
-    return ipcRenderer.invoke('show-context-menu', type)
+    ipcRenderer.send('show-context-menu', type)
   },
   openDir (list) {
     ipcRenderer.send('open-dir', list)
@@ -64,7 +64,8 @@ contextBridge.exposeInMainWorld('electron', {
   on (channel, func) {
     const validChannels = [
       'download-video-status',
-      'download-danmuku'
+      'download-danmuku',
+      'show-context-menu-reply'
     ]
     if (validChannels.includes(channel)) {
       const subscription = (_event, ...args) =>
@@ -74,7 +75,6 @@ contextBridge.exposeInMainWorld('electron', {
 
       return () => ipcRenderer.removeListener(channel, subscription)
     }
-
     return undefined
   },
   once (channel, func) {
@@ -83,5 +83,9 @@ contextBridge.exposeInMainWorld('electron', {
       // Deliberately strip event as it includes `sender`
       ipcRenderer.once(channel, (_event, ...args) => func(...args))
     }
+  },
+  off (channel, func) {
+    console.log(`off event —— ${channel}`)
+    ipcRenderer.off(channel, func)
   }
 })

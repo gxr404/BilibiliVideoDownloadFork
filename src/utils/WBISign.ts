@@ -12,7 +12,7 @@ const mixinKeyEncTab = [
 const getMixinKey = (orig: string) => mixinKeyEncTab.map(n => orig[n]).join('').slice(0, 32)
 
 // 为请求参数进行 wbi 签名
-export function encWbi (params: any, img_key: string, sub_key: string) {
+export function encWbi (params: AnyObject, img_key: string, sub_key: string) {
   const mixin_key = getMixinKey(img_key + sub_key)
   const curr_time = Math.round(Date.now() / 1000)
   const chr_filter = /[!'()*]/g

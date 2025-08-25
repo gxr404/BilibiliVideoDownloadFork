@@ -3,7 +3,7 @@ import { pinia } from './store'
 import App from './App.vue'
 import router from './router'
 import Antd from 'ant-design-vue'
-import 'ant-design-vue/dist/antd.less'
+import 'ant-design-vue/dist/reset.css'
 import './assets/style/main.less'
 
 const app = createApp(App)

@@ -1,7 +1,7 @@
 <template>
   <a-modal
     wrapClassName="custom-modal-padding"
-    :visible="visible"
+    :open="visible"
     :confirmLoading="confirmLoading"
     :okButtonProps="{ disabled: !(quality !== -1 && selected.length !== 0) }"
     :closable="false"
@@ -118,6 +118,7 @@ import { userQuality } from '../../assets/data/quality'
 import { VideoData } from '../../type'
 import { videoData } from '../../assets/data/default'
 import { STATUS } from '../../assets/data/status'
+import type { CheckboxChangeEvent } from 'ant-design-vue/es/checkbox/interface'
 
 const visible = ref<boolean>(false)
 const confirmLoading = ref<boolean>(false)
@@ -134,7 +135,7 @@ const videoList = computed(() => {
     return []
   }
   const res = []
-  const temp: any = {}
+  const temp: AnyObject = {}
   videoInfo.value.page.forEach(item => {
     const sectionsTitle = item.sectionsTitle || '正片'
     if (!Array.isArray(temp[sectionsTitle])) {
@@ -192,7 +193,7 @@ const open = (data: VideoData) => {
   saveFilePrefix.value = true
   const quality = userQuality[store.baseStore().loginStatus]
   // 过滤掉 不合法的清晰度
-  data.qualityOptions = data.qualityOptions.filter((item: any) => quality.includes(item.value))
+  data.qualityOptions = data.qualityOptions.filter((item) => quality.includes(item.value))
   videoInfo.value = data
   visible.value = true
   // 如果是单p，则默认选中
@@ -201,11 +202,11 @@ const open = (data: VideoData) => {
   }
 }
 
-const onAllSelectedChange = (e: any) => {
+const onAllSelectedChange = (e: CheckboxChangeEvent) => {
   allSelected.value = e.target.checked
   selected.value = []
   if (e.target.checked) {
-    videoInfo.value.page.forEach((element: any) => {
+    videoInfo.value.page.forEach((element) => {
       if (element.badge === '会员') {
         if (store.baseStore().loginStatus === 2) selected.value.push(element.page)
       } else {

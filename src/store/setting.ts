@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { isUndefined } from 'lodash'
-import { SettingData, SettingDataEasy } from '../type/index'
+import { set, SettingData, SettingDataEasy, SettingDataEasyKey } from '../type/index'
 
 export const settingStore = defineStore('setting', {
   state: () => {
@@ -88,10 +88,12 @@ export const settingStore = defineStore('setting', {
     },
     setSetting (setting: SettingDataEasy) {
       const allSetting = this.getSetting
-      for (const key in allSetting) {
-        if (!isUndefined(setting[key])) {
-          allSetting[key] = setting[key]
-          this[key] = setting[key]
+      for (const _key in allSetting) {
+        const key = _key as SettingDataEasyKey
+        const value = setting[key]
+        if (!isUndefined(value)) {
+          set(allSetting, key, value)
+          set(this, key, value)
         }
       }
       window.electron.setStore('setting', allSetting)

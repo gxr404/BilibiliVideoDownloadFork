@@ -1,12 +1,12 @@
 'use strict'
 
+import path from 'path'
 import { app, protocol, BrowserWindow, ipcMain, shell, dialog, Menu, globalShortcut } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
-import installExtension from 'electron-devtools-installer'
-import path from 'path'
+import { installExtension, VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 import fs from 'fs-extra'
 import { settingData } from './assets/data/default'
-import { TaskData, SettingData } from './type'
+import { TaskData, SettingData, MenuType } from './type'
 import downloadVideo from './core/download'
 import store from './core/mainStore'
 import { STATUS } from './assets/data/status'
@@ -123,47 +123,44 @@ ipcMain.on('delete-store', (event, path) => {
   store.delete(path)
 })
 
-// 创建右键菜单
-ipcMain.handle('show-context-menu', (event, type: string) => {
-  return new Promise((resolve, reject) => {
-    const menuMap = {
-      download: [
-        {
-          label: '删除任务',
-          type: 'normal',
-          click: () => resolve('delete')
-        },
-        {
-          label: '重新下载',
-          type: 'normal',
-          click: () => resolve('reload')
-        },
-        {
-          label: '打开文件夹',
-          type: 'normal',
-          click: () => resolve('open')
-        },
-        {
-          label: '全选',
-          type: 'normal',
-          click: () => resolve('selectAll')
-        },
-        {
-          label: '播放视频',
-          type: 'normal',
-          click: () => resolve('play')
-        }
-      ],
-      home: [
-        { label: '全选', role: 'selectAll' },
-        { label: '复制', role: 'copy' },
-        { label: '粘贴', role: 'paste' }
-      ]
-    }
-    const template: any = menuMap[type]
-    const contextMenu = Menu.buildFromTemplate(template)
-    contextMenu.popup({ window: win })
-  })
+ipcMain.on('show-context-menu', (event, type: MenuType) => {
+  const menuMap = {
+    download: [
+      {
+        label: '删除任务',
+        type: 'normal',
+        click: () => event.reply('show-context-menu-reply', 'delete')
+      },
+      {
+        label: '重新下载',
+        type: 'normal',
+        click: () => event.reply('show-context-menu-reply', 'reload')
+      },
+      {
+        label: '打开文件夹',
+        type: 'normal',
+        click: () => event.reply('show-context-menu-reply', 'open')
+      },
+      {
+        label: '全选',
+        type: 'normal',
+        click: () => event.reply('show-context-menu-reply', 'selectAll')
+      },
+      {
+        label: '播放视频',
+        type: 'normal',
+        click: () => event.reply('show-context-menu-reply', 'play')
+      }
+    ],
+    home: [
+      { label: '全选', role: 'selectAll' },
+      { label: '复制', role: 'copy' },
+      { label: '粘贴', role: 'paste' }
+    ]
+  }
+  const template: any = menuMap[type]
+  const contextMenu = Menu.buildFromTemplate(template)
+  contextMenu.popup({ window: win })
 })
 
 // 打开删除任务dialog
@@ -271,8 +268,7 @@ async function createWindow () {
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: (process.env
-        .ELECTRON_NODE_INTEGRATION as unknown) as boolean,
+      nodeIntegration: (process.env.ELECTRON_NODE_INTEGRATION as unknown) as boolean,
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
       preload: path.join(__dirname, 'preload.js')
     }
@@ -281,7 +277,12 @@ async function createWindow () {
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string)
-    if (!process.env.IS_TEST) win.webContents.openDevTools({ mode: 'detach' })
+    if (!process.env.IS_TEST) {
+      setTimeout(() => {
+        win.webContents.openDevTools({ mode: 'detach' })
+      }, 100)
+    }
+    // win.webContents.openDevTools({ mode: 'detach' })
   } else {
     createProtocol('app')
     // Load the index.html when not in development
@@ -368,11 +369,13 @@ app.on('activate', () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', async () => {
+app.whenReady().then(async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-      await installExtension('nhdogjmejiglipccpnnnanhbledajbpd')
+      await installExtension(VUEJS_DEVTOOLS)
+        .then((ext) => console.log(`Added Extension:  ${ext.name}`))
+        .catch((err) => console.log('An error occurred: ', err))
     } catch (e: any) {
       console.error('Vue Devtools failed to install:', e.toString())
     }

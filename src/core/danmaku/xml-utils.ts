@@ -14,4 +14,4 @@ const replace = (content: string, map: Record<string, string>) => {
 }
 
 export const escapeContent = (content: string) => replace(content, escapeMap)
-export const normalizeContent = (content: string) => replace(content, normalizeMap)
+// export const normalizeContent = (content: string) => replace(content, normalizeMap)

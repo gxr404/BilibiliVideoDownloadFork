@@ -43,7 +43,7 @@ jobs:
       # step3: npm install
       - name: npm install
         run: |
-          npm install --legacy-peer-deps
+          npm install
 
       # step4: build app for mac/win/linux
       - name: Build windows app
@@ -77,8 +77,8 @@ jobs:
       - name: Build for ubuntu arm64
         if: matrix.os == 'ubuntu-24.04'
         run: |
-          npm uninstall ffmpeg-static --legacy-peer-deps
-          npm install ffmpeg-static --platform=linux --arch=arm64 --legacy-peer-deps
+          npm uninstall ffmpeg-static
+          npm install ffmpeg-static --platform=linux --arch=arm64
           npm run electron:build -- --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

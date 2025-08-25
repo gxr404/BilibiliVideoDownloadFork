@@ -54,6 +54,23 @@ export const normalizeContent = (content: string) => {
   }
   for (const [key, value] of Object.entries(map)) {
     content = content.replace(new RegExp(key, 'g'), value)
+    content = safeInput(content)
   }
   return content
+}
+
+function safeInput (str: string) {
+  if (typeof str !== 'string') {
+    str = String(str)
+  }
+  // 去掉 null 字符
+  // eslint-disable-next-line no-control-regex
+  str = str.replace(/\u0000/g, '')
+  // // 限制长度
+  // if (str.length > 1e6) {
+  //   throw new Error('String too long')
+  // }
+  // 保证是合法 UTF-8
+  str = Buffer.from(str, 'utf8').toString('utf8')
+  return str
 }

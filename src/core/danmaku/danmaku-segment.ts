@@ -279,7 +279,12 @@ const decode = lodash.curry(async (type: string, buffer: Buffer) => {
   // index out of range:
   // TODO: error index out of range: 3 + 99 > 39
   const message = reply.decode(buffer)
-  return reply.toObject(message)
+  // nodejs 与 浏览器端 protobuf解析不一致
+  return reply.toObject(message, {
+    longs: Number // int64/uint64 转字符串
+    // enums: String, // 可选：枚举转字符串
+    // bytes: String // 可选：bytes 转 base64
+  })
 })
 export const decodeDanmakuSegment = decode('DmSegMobileReply')
 export const decodeDanmakuView = decode('DmWebViewReply')

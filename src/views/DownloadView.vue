@@ -6,7 +6,7 @@
       </template>
     </a-empty>
     <template v-else>
-      <div class="left custom-scroll-bar" ref="left">
+      <div class="left custom-scroll-bar" ref="leftDivRef">
         <div
           v-for="[key, value] in taskList" :key="key"
           :class="['fr', 'download-item',Number(value.status)===STATUS.FAIL && 'error-bg', selected.includes(key) ? 'active' : '']"
@@ -29,7 +29,7 @@
                   :strokeColor="Number(value.status)===STATUS.FAIL ? '#ff0000' :'#fb7299'" />
               </div>
               <div class="reload" v-if="Number(value.status)===STATUS.FAIL" @click="reloadBtnClick(key)">
-                <ReloadOutlined />
+                <ReloadOutlined class="text-active" />
               </div>
             </div>
           </div>
@@ -61,7 +61,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, toRaw } from 'vue'
+import { ref, onMounted, toRaw, h, onUnmounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { downloadStatusMap, STATUS } from '../assets/data/status'
@@ -70,10 +70,11 @@ import { store } from '../store'
 import { qualityMap } from '../assets/data/quality'
 import { checkUrl, checkUrlRedirect, parseHtml, getDownloadList, addDownload } from '../core/bilibili'
 import { ReloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
+import { TaskData } from '../type/index'
 
 const { taskList, rightTask, taskListArray, rightTaskId } = storeToRefs(store.taskStore())
 const selected = ref<string[]>([])
-const left = ref<any>(null)
+const leftDivRef = ref<HTMLDivElement | null>(null)
 
 const openBrowser = (url: string) => {
   window.electron.openBrowser(url)
@@ -84,7 +85,7 @@ const formatDownloadStatus = (status: number, type: string) => {
 }
 
 const formatQuality = (quality: number) => {
-  return quality === -1 ? '' : qualityMap[quality]
+  return quality === -1 ? '' : qualityMap[(quality as keyof typeof qualityMap)]
 }
 
 const formatVideoSize = (size: number) => {
@@ -97,7 +98,6 @@ const switchItem = (key: string) => {
 }
 
 const multiSelect = (key: string) => {
-  console.log('multiSelect', key)
   const index = selected.value.indexOf(key)
   if (index !== -1) {
     if (selected.value.length > 1) selected.value.splice(index, 1)
@@ -126,25 +126,32 @@ const showContextmenu = async (key: string) => {
   if (!isSelectKey) {
     switchItem(key)
   }
-  let res = ''
   try {
-    res = await window.electron.showContextmenu('download')
+    window.electron.showContextmenu('download')
   } catch (e) {
     console.log(e)
   }
-  console.log(res)
-  if (res === 'open') {
-    openDir()
-  } else if (res === 'delete') {
-    deleteVideos()
-  } else if (res === 'selectAll') {
-    selectAll()
-  } else if (res === 'reload') {
-    reloadDownload()
-  } else if (res === 'play') {
-    playVideo()
+}
+
+const showContextMenuReplyHandle = (clickType: ReplyMenuType) => {
+  const MenuCallbackMap = new Map([
+    ['open', openDir],
+    ['delete', deleteVideos],
+    ['selectAll', selectAll],
+    ['reload', reloadDownload],
+    ['play', playVideo]
+  ])
+  const cb = MenuCallbackMap.get(clickType)
+  if (typeof cb === 'function') {
+    cb()
   }
 }
+
+window.electron.on('show-context-menu-reply', showContextMenuReplyHandle)
+
+onUnmounted(() => {
+  window.electron.off('show-context-menu-reply', showContextMenuReplyHandle)
+})
 
 const playVideo = () => {
   if (rightTask.value.status === STATUS.COMPLETED) {
@@ -159,15 +166,19 @@ const reloadDownload = async () => {
   if (!response) return
   // 获取选中任务数据
   const loading = message.loading('下载中...', 0)
-  let selectedTask: any[] = []
+  let selectedTask: (TaskData & {curPage: number})[] = []
   selected.value.forEach(item => {
     const task = store.taskStore().getTask(item)
     if (task) selectedTask.push(JSON.parse(JSON.stringify(task)))
   })
-  selectedTask = selectedTask.map(item => ({
-    ...item,
-    curPage: item.page.find((it: any) => it.cid === item.cid) ? item.page.find((it: any) => it.cid === item.cid).page : 0
-  }))
+
+  selectedTask = selectedTask.map(item => {
+    const curPageItem = item.page.find((it) => it.cid === item.cid)
+    return {
+      ...item,
+      curPage: curPageItem ? curPageItem.page : 0
+    }
+  })
   try {
     for (const key in selectedTask) {
       const item = selectedTask[key]
@@ -187,8 +198,8 @@ const reloadDownload = async () => {
       }
       // await sleep(300)
     }
-  } catch (e: any) {
-    message.error(e.toString())
+  } catch (e: unknown) {
+    message.error(e!.toString())
   }
 
   loading()
@@ -200,7 +211,7 @@ const openDir = () => {
 
 const deleteVideos = async () => {
   const { response, checkboxChecked } = await window.electron.openDeleteVideoDialog(selected.value.length)
-  console.log(response, checkboxChecked)
+  // console.log(response, checkboxChecked)
   const filelist: string[] = []
   selected.value.forEach(item => {
     const task = store.taskStore().getTask(item)
@@ -250,7 +261,7 @@ function showCleanConfirm () {
     Modal.confirm({
       title: '清除所有已完成的任务?',
       content: '不会影响已下载的本地文件',
-      icon: false,
+      icon: h('div'),
       onOk () {
         resolve(true)
       },
@@ -267,7 +278,7 @@ onMounted(() => {
   taskListArray.value.forEach((item, index) => {
     if (item[0] === rightTaskId.value && index >= 3) {
       // 滚动
-      left.value.scrollTo({
+      leftDivRef?.value?.scrollTo({
         top: 83 * (index - 2)
       })
     }
@@ -286,24 +297,30 @@ function reloadBtnClick (key: string) {
   box-sizing: border-box;
   position: relative;
   flex: 1;
-  padding: 16px;
+  padding: 10px;
   &.bg-fff{
     background: #ffffff;
   }
   .left{
     flex: 5;
     width: 0;
-    border-top: 1px solid #eeeeee;
+    // border-top: 1px solid #eeeeee;
     border-right: 1px solid #eeeeee;
-    overflow-y: overlay;
-    .download-item{
+    overflow-y: auto;
+    .download-item {
       border-bottom: 1px solid #eeeeee;
       cursor: pointer;
+      &:last-child {
+        border-bottom: 0;
+      }
       &.error-bg{
         background-color: rgba(0, 0, 0, 0.2);
       }
       &.active{
         background: rgba(251, 114, 153, 0.2);
+      }
+      &:hover {
+        background: rgba(251, 114, 153, 0.1);
       }
       .img{
         flex: none;
@@ -323,18 +340,27 @@ function reloadBtnClick (key: string) {
       .content{
         box-sizing: border-box;
         flex: none;
-        width: 332px;
+        width: 322px;
         padding: 8px;
         .fx {
           display: flex;
+          position: relative;
         }
         .process-bar {
           width: 100%;
+          padding-right: 2px;
         }
         .reload {
           width: 20px;
           text-align: center;
           color: rgb(251, 114, 153);
+          position: absolute;
+          right: -8px;
+          top: 2px;
+          z-index: 2;
+          img {
+            vertical-align: middle;
+          }
         }
       }
     }

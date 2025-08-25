@@ -12,7 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
     "resolveJsonModule": true,
-    "suppressImplicitAnyIndexErrors": true,
     "sourceMap": true,
     "allowJs": true,
     "baseUrl": ".",
