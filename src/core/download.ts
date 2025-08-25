@@ -183,7 +183,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
       }),
     fs.createWriteStream(videoInfo.filePathList[3])
   )
-  log.info(`✅ 下载下载音频 ${videoInfo.title}`)
+  log.info(`✅ 下载音频完成 ${videoInfo.title}`)
 
   // await sleep(2500)
 
