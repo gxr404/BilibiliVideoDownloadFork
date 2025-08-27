@@ -26,7 +26,7 @@ jobs:
         # os: [windows-latest, macos-latest, 'ubuntu-latest']
         # macos-13 is an intel runner, macos-14 is apple silicon
         # https://docs.github.com/zh/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-        os: [ubuntu-latest, ubuntu-24.04, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
 
     # create steps
     steps:
@@ -75,10 +75,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for ubuntu arm64
-        if: matrix.os == 'ubuntu-24.04'
+        if: matrix.os == 'ubuntu-24.04-arm'
         run: |
-          npm uninstall ffmpeg-static
-          npm install ffmpeg-static --platform=linux --arch=arm64
           npm run electron:build -- --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -104,8 +102,8 @@ jobs:
         run: |
           npx rimraf "dist_electron/!(*.AppImage|*.deb)"
 
-      - name: cleanup artifacts for ubuntu-24.04
-        if: matrix.os == 'ubuntu-24.04'
+      - name: cleanup artifacts for ubuntu-24.04-arm
+        if: matrix.os == 'ubuntu-24.04-arm'
         run: |
           npx rimraf "dist_electron/!(*.AppImage|*.deb)"
 
