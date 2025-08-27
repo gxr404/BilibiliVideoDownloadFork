@@ -30,10 +30,29 @@
 
 ## 常见问题
 
-打开显示「“xxxx”已损坏，无法打开。 您应该将它移到废纸篓。」
+### 打开显示「“xxxx”已损坏，无法打开。 您应该将它移到废纸篓。」
 
 ```bash
 sudo xattr -d com.apple.quarantine /Applications/BilibiliVideoDownloadFork.app
+```
+
+### linux下如果报错SUID sandbox
+
+```txt
+The SUID sandbox helper binary was found, but is not configured correctly. Rather than run without sandboxing I'm aborting now. You need to make sure that /opt/BilibiliVideoDownloadFork/chrome-sandbox is owned by root and has mode 4755.
+```
+
+解决方案一
+
+```bash
+sudo chown root:root /opt/BilibiliVideoDownloadFork/chrome-sandbox
+sudo chmod 4755 /opt/BilibiliVideoDownloadFork/chrome-sandbox
+```
+
+解决方案二(没尝试过)
+
+```bash
+./your-app --no-sandbox
 ```
 
 ## 注意
