@@ -34,12 +34,16 @@ export const taskStore = defineStore('task', {
     setTask (taskList: TaskData[], isSyncMainStore = true) {
       taskList.forEach(task => {
         this.taskList.set(task.id, task)
-        if (isSyncMainStore) {
-          // 修改electron-store
-          const path = `taskList.${task.id}`
-          window.electron.setStore(path, task)
-        }
+        // if (isSyncMainStore) {
+        //   // 修改electron-store
+        //   const path = `taskList.${task.id}`
+        //   window.electron.setStore(path, task)
+        // }
       })
+      if (isSyncMainStore) {
+        // 修改electron-store
+        window.electron.setTaskListStore(taskList)
+      }
     },
     setTaskEasy (taskList: TaskData[]) {
       taskList.forEach(task => {
@@ -49,10 +53,11 @@ export const taskStore = defineStore('task', {
     deleteTask (list: string[]) {
       list.forEach(id => {
         this.taskList.delete(id)
-        // 修改electron-store
-        const path = `taskList.${id}`
-        window.electron.deleteStore(path)
+        // // 修改electron-store
+        // const path = `taskList.${id}`
+        // window.electron.deleteStore(path)
       })
+      window.electron.deleteTaskListStore(list)
     },
     has (id: string) {
       return this.taskList.has(id)

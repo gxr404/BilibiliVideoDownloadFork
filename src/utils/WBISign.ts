@@ -34,7 +34,7 @@ export function encWbi (params: AnyObject, img_key: string, sub_key: string) {
   return query + '&w_rid=' + wbi_sign
 }
 
-// 获取最新的 img_key 和 sub_key
+// 获取最新的 img_key 和 sub_key, 未登录的情况下才可能调用 几乎没有 // TODO: 待定是否删除
 export async function getWbiKeys (SESSDATA: string) {
   const { body } = await window.electron.got('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
@@ -43,7 +43,8 @@ export async function getWbiKeys (SESSDATA: string) {
     },
     responseType: 'json'
   })
-  const { data: { wbi_img: { img_url, sub_url } } } = await body
+
+  const { data: { wbi_img: { img_url, sub_url } } } = body
 
   return {
     img_key: img_url.slice(

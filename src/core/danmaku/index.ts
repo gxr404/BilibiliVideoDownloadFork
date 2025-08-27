@@ -13,12 +13,12 @@ const fs = require('fs-extra')
 const got = require('got')
 const log = require('electron-log')
 
-function getGotConfig () {
+function getGotConfig (SESSDATA: string) {
   // console.log(store)
   return {
     headers: {
       'User-Agent': randUserAgent(),
-      cookie: `SESSDATA=${store.get('setting').SESSDATA || ''}`
+      cookie: `SESSDATA=${SESSDATA}`
     }
   }
 }
@@ -31,6 +31,7 @@ function getGotConfig () {
 // }
 
 function gotBuffer (url: string, option: any) {
+  // console.log('[main-got]: gotBuffer --->', url, option)
   return new Promise((resolve, reject) => {
     got(url, option)
       .buffer()
@@ -84,6 +85,7 @@ export class JsonDanmaku {
   }
 
   async getWbiKeys (SESSDATA: string) {
+    // console.log('[main-got]: danmaku getWbiKeys ---->')
     const { body } = await got('https://api.bilibili.com/x/web-interface/nav', {
       headers: {
         'User-Agent': randUserAgent(),
@@ -107,8 +109,10 @@ export class JsonDanmaku {
 
   async fetchInfo () {
     let viewBuffer: any
+    const SESSDATA = store.get('setting').SESSDATA || ''
     try {
-      viewBuffer = await gotBuffer(`https://api.bilibili.com/x/v2/dm/web/view?type=1&oid=${this.cid}`, getGotConfig())
+      const apiUrl = `https://api.bilibili.com/x/v2/dm/web/view?type=1&oid=${this.cid}`
+      viewBuffer = await gotBuffer(apiUrl, getGotConfig(SESSDATA))
     } catch (error) {
       throw new Error('获取弹幕信息失败')
     }
@@ -121,7 +125,8 @@ export class JsonDanmaku {
     if (dmCount === undefined) {
       throw new Error(`获取弹幕count失败: ${JSON.stringify(omit(view, 'flag'))}`)
     }
-    const SESSDATA = store.get('setting').SESSDATA || ''
+
+    // 未登录的情况下才可能调用 几乎没有 // TODO: 待定是否删除
     let img_key = ''
     let sub_key = ''
     if (!SESSDATA) {
@@ -156,7 +161,7 @@ export class JsonDanmaku {
         const danmaAPI = `https://api.bilibili.com/x/v2/dm/web/seg.so?${query}`
         // console.log('danmaAPI', danmaAPI)
 
-        buffer = await gotBuffer(danmaAPI, getGotConfig())
+        buffer = await gotBuffer(danmaAPI, getGotConfig(SESSDATA))
       } catch (error) {
         throw new Error('获取弹幕信息失败')
       }
@@ -228,6 +233,7 @@ export const convertToAssFromJson = async (danmaku: JsonDanmaku, title: string) 
 }
 
 export const downloadDanmaku = async (cid: number, title: string, path: string) => {
+  // console.log('[main-downloadDanmaku]:', cid, title, path)
   try {
     const danmaku = await new JsonDanmaku(cid).fetchInfo()
     const content = await convertToAssFromJson(danmaku, title)

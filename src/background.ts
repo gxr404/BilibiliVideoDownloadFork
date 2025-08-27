@@ -10,10 +10,12 @@ import { TaskData, SettingData, MenuType } from './type'
 import downloadVideo from './core/download'
 import store from './core/mainStore'
 import { STATUS } from './assets/data/status'
+import pLimit from 'p-limit'
 
 const got = require('got')
 const log = require('electron-log')
 
+const limit = pLimit(10)
 const isDevelopment = process.env.NODE_ENV !== 'production'
 let win: BrowserWindow
 
@@ -71,9 +73,11 @@ ipcMain.handle('open-dir-dialog', () => {
 
 // 打开文件夹
 ipcMain.on('open-dir', (event, list) => {
+  if (list.length <= 0) return
+  const taskList = store.get('taskList')
   const fileDirs: string[] = []
   list.forEach((id: string) => {
-    const task = store.get(`taskList.${id}`)
+    const task = taskList[id]
     if (task && task.fileDir) fileDirs.push(task.fileDir)
   })
   fileDirs.forEach(dir => {
@@ -116,11 +120,42 @@ ipcMain.handle('get-store', (event, path) => {
 })
 
 ipcMain.on('set-store', (event, path, data) => {
+  // console.log('[main-set-store]: ', path, data)
   store.set(path, data)
+})
+
+ipcMain.on('set-task-list-store', (event, list = []) => {
+  // console.log('[main-set-task-list-store]: ', list)
+  const taskList = store.get('taskList')
+  if (Array.isArray(list)) {
+    list.forEach((task) => {
+      // 频繁触发store.set会卡顿
+      // const path = `taskList.${task.id}`
+      // store.set(path, task)
+      taskList[task.id] = task
+    })
+    store.set('taskList', taskList)
+  }
 })
 
 ipcMain.on('delete-store', (event, path) => {
   store.delete(path)
+})
+
+ipcMain.on('delete-task-list-store', (event, idList = []) => {
+  const taskList = store.get('taskList')
+  if (Array.isArray(idList)) {
+    idList.forEach(id => {
+      delete taskList[id]
+    })
+    store.set('taskList', taskList)
+    // 频繁触发store.delete 会卡顿
+    // const updateTaskList = taskList.filter(task => !(idList.includes(task.id)))
+    // idList.forEach((id) => {
+    //   const path = `taskList.${id}`
+    //   store.delete(path)
+    // })
+  }
 })
 
 ipcMain.on('show-context-menu', (event, type: MenuType) => {
@@ -183,11 +218,16 @@ ipcMain.handle('open-delete-video-dialog', (event, taskCount) => {
 })
 
 // 删除任务文件
-ipcMain.handle('delete-videos', (event, filePaths) => {
-  for (const key in filePaths) {
-    fs.removeSync(filePaths[key])
-  }
-  return Promise.resolve('success')
+ipcMain.handle('delete-videos', async (event, filePaths) => {
+  // const delelteList: Promise<void>[] = []
+  // for (const key in filePaths) {
+  //   delelteList.push(fs.remove(filePaths[key]))
+  // }
+  // return Promise.all(delelteList) // Promise.resolve('success')
+  filePaths.map((fp: string) => limit(() => fs.remove(fp)))
+  const tasks = filePaths.map((fp: string) => limit(() => fs.remove(fp)))
+  await Promise.all(tasks)
+  return 'done'
 })
 
 // 下载任务
@@ -196,13 +236,21 @@ ipcMain.on('download-video', (event, task: TaskData) => {
   downloadVideo(task, event, setting)
 })
 
+ipcMain.on('download-video-list', (event, taskList: TaskData[]) => {
+  const setting: SettingData = store.get('setting')
+  taskList.forEach((task) => {
+    downloadVideo(task, event, setting)
+  })
+})
+
 // 获取视频大小
 ipcMain.handle('get-video-size', (event, id: string) => {
   const task = store.get(`taskList.${id}`)
   if (task && task.filePathList) {
     try {
-      const stat = fs.statSync(task.filePathList[0])
-      return Promise.resolve(stat.size)
+      // const stat = fs.statSync(task.filePathList[0])
+      // return Promise.resolve(stat.size)
+      return fs.stat(task.filePathList[0]).then((stat) => stat.size)
     } catch (error: any) {
       log.error(`get-video-size error: ${error.message}`)
     }
@@ -328,18 +376,33 @@ function initStore () {
   })
 }
 
-function handleCloseApp () {
-  // 检查当前是否有下载中任务
+function getDownloadingTaskCount () {
   const taskList = store.get('taskList')
   let count = 0
   for (const key in taskList) {
     const task = taskList[key]
     if (task.status !== STATUS.COMPLETED && task.status !== STATUS.FAIL) {
       count += 1
+      // task.progress = 100
+    }
+  }
+  return count
+}
+function setDownloadingTaskFail () {
+  const taskList = store.get('taskList')
+  for (const key in taskList) {
+    const task = taskList[key]
+    if (task.status !== STATUS.COMPLETED && task.status !== STATUS.FAIL) {
+      console.log('FAIL', JSON.stringify(task, null, 2))
       task.status = STATUS.FAIL
       // task.progress = 100
     }
   }
+  return taskList
+}
+
+function handleCloseApp () {
+  const count = getDownloadingTaskCount()
   dialog.showMessageBox(win, {
     type: 'info',
     title: '提示',
@@ -347,8 +410,10 @@ function handleCloseApp () {
     buttons: ['取消', '关闭']
   })
     .then(res => {
-      if (count) store.set('taskList', taskList)
-      if (res.response === 1) win.destroy()
+      if (res.response === 1) {
+        if (count) store.set('taskList', setDownloadingTaskFail())
+        win.destroy()
+      }
     })
     .catch(error => {
       console.log(error)

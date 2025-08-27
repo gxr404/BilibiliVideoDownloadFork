@@ -13,7 +13,10 @@ const STATUS = {
   PENDING: 4,
   /** 失败 */
   FAIL: 5
-}
+} as const
+
+type ValueOf<T> = T[keyof T]
+export type STATUS_VALUE = ValueOf<typeof STATUS>
 
 const downloadStatusMap = {
   [STATUS.COMPLETED]: {

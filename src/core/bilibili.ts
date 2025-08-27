@@ -1,14 +1,10 @@
 import pLimit from 'p-limit'
 import { formatSecond, randUserAgent, getWbiKeys, encWbi, formatFileName, filterTitle } from '../utils'
 import { qualityMap } from '../assets/data/quality'
-import { customAlphabet } from 'nanoid'
-import alphabet from '../assets/data/alphabet'
 import { VideoData, Page, DownloadUrl, Subtitle, TaskData } from '../type'
 import { store, pinia } from '../store'
 import { STATUS } from '../assets/data/status'
-
-// 自定义uuid
-const nanoid = customAlphabet(alphabet, 16)
+import { nanoid } from '@/utils'
 
 /**
  * @params videoInfo: 当前下载的视频详情 selected：所选的分p quality：所选的清晰度
@@ -220,6 +216,7 @@ const parseHtml = (html: string, type: string, url: string) => {
 }
 
 const parseBV = async (html: string, url: string) => {
+  console.log('[render parseBV]: ', url)
   try {
     const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)/)
     if (!videoInfo) throw new Error(`parse bv error [videoInfo]: ${url}`)
@@ -260,6 +257,7 @@ const parseBV = async (html: string, url: string) => {
         audio: handleAudio(downLoadData.data.dash)
       }
     } catch (error) {
+      console.log('parseBV 获取视频地址失败，重新请求', error)
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
     }
     const obj: VideoData = {
@@ -296,6 +294,7 @@ const parseBV = async (html: string, url: string) => {
 }
 
 const parseList = async (html: string, url: string) => {
+  console.log('[render parseList]: ', url)
   try {
     const videoInfo = html.match(/<script>window\.__INITIAL_STATE__=([\s\S]*?);\(function\(\)/)
     if (!videoInfo) throw new Error(`parse bv error ${url}`)
@@ -313,6 +312,7 @@ const parseList = async (html: string, url: string) => {
         audio: handleAudio(downLoadData.data.dash)
       }
     } catch (error) {
+      console.log('parseList 获取视频地址失败，重新请求', error)
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
       console.log('acceptQuality', acceptQuality)
     }
@@ -360,6 +360,7 @@ const parseList = async (html: string, url: string) => {
 // }
 
 const parseEP = async (html: string, url: string) => {
+  console.log('[render parseEP]: ', url)
   try {
     // const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)\{var s\;/)
     const nextDataMatch = html.match(/\<script id="__NEXT_DATA__" type="application\/json"\>([\s\S]*?)\<\/script\>/)
@@ -440,6 +441,7 @@ const parseEP = async (html: string, url: string) => {
         audio: handleAudio(downLoadData.dash)
       }
     } catch (error) {
+      console.log('parseEP 获取视频地址失败，重新请求', error)
       acceptQuality = await getAcceptQuality(epInfo.cid, epInfo.bvid)
     }
     const obj: VideoData = {
@@ -522,6 +524,7 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
     session: '68191c1dc3c75042c6f35fba895d65b0'
   }
   let query = ''
+  // 未登录需要wbi签名 未登录的情况下才可能调用 几乎没有 // TODO: 待定是否删除
   if (!SESSDATA) {
     const web_keys = await getWbiKeys('')
     const img_key = web_keys.img_key
@@ -572,7 +575,7 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     fnval: 80
   }
   let query = ''
-  // 未登录需要wbi签名
+  // 未登录需要wbi签名 未登录的情况下才可能调用 几乎没有 // TODO: 待定是否删除
   if (!SESSDATA) {
     const web_keys = await getWbiKeys('')
     const img_key = web_keys.img_key
@@ -745,16 +748,21 @@ const parseBVPageData = ({ bvid, title, pages, ugc_season }: IParseBVPageData, u
       }
     ]
   } else {
-    return pages.map(item => ({
-      title: item.part,
-      showTitle: item.part,
-      page: item.page,
-      collectionName: filterTitle(title),
-      duration: formatSecond(item.duration),
-      cid: item.cid,
-      bvid,
-      url: `${url}?p=${item.page}`
-    }))
+    const { origin, pathname, searchParams } = new URL(url)
+    const tempUrl = `${origin}${pathname}`
+    return pages.map(item => {
+      searchParams.set('p', item.page)
+      return {
+        title: item.part,
+        showTitle: item.part,
+        page: item.page,
+        collectionName: filterTitle(title),
+        duration: formatSecond(item.duration),
+        cid: item.cid,
+        bvid,
+        url: `${tempUrl}?${searchParams.toString()}`
+      }
+    })
   }
 }
 

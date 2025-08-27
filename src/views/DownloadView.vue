@@ -7,7 +7,42 @@
     </a-empty>
     <template v-else>
       <div class="left custom-scroll-bar" ref="leftDivRef">
-        <div
+        <RecycleScroller
+          class="scroller custom-scroll-bar"
+          :items="taskKeyValueList"
+          :item-size="91"
+          key-field="key"
+          v-slot="{ item }"
+        >
+          <div
+            :class="['fr', 'download-item',Number(item.value.status)===STATUS.FAIL && 'error-bg', selected.includes(item.key) ? 'active' : '']"
+            @click.left.exact="switchItem(item.key)"
+            @click.ctrl.exact="multiSelect(item.key)"
+            @click.meta.exact="multiSelect(item.key)"
+            @click.shift.exact="rangeSelect(item.key)"
+            @click.right="showContextmenu(item.key)">
+            <div class="img fr ac">
+              <img :src="item.value.cover" :alt="item.value.title">
+            </div>
+            <div class="content fc jsb">
+              <div class="ellipsis-1">{{ item.value.title }}</div>
+              <div>状态：<span :class="['text-active', Number(item.value.status)===STATUS.FAIL && 'error']">{{ formatDownloadStatus(item.value.status, 'label') }}</span></div>
+              <div class="fx">
+                <div class="process-bar">
+                  <a-progress
+                    :key="`progress_${item.key}`"
+                    :percent="item.value.progress"
+                    :status="formatDownloadStatus(item.value.status, 'value')"
+                    :strokeColor="Number(item.value.status)===STATUS.FAIL ? '#ff0000' :'#fb7299'" />
+                </div>
+                <div class="reload" v-if="Number(item.value.status)===STATUS.FAIL" @click="reloadBtnClick(item.key)">
+                  <ReloadOutlined class="text-active" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </RecycleScroller>
+        <!-- <div
           v-for="[key, value] in taskList" :key="key"
           :class="['fr', 'download-item',Number(value.status)===STATUS.FAIL && 'error-bg', selected.includes(key) ? 'active' : '']"
           @click.left.exact="switchItem(key)"
@@ -33,7 +68,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
       </div>
       <div class="right">
         <div class="image">
@@ -61,27 +96,36 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, toRaw, h, onUnmounted } from 'vue'
+import { ref, onMounted, toRaw, h, onUnmounted, computed } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { ReloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { downloadStatusMap, STATUS } from '../assets/data/status'
 import { storeToRefs } from 'pinia'
+import { RecycleScroller } from 'vue-virtual-scroller'
+import { downloadStatusMap, STATUS, STATUS_VALUE } from '../assets/data/status'
 import { store } from '../store'
 import { qualityMap } from '../assets/data/quality'
 import { checkUrl, checkUrlRedirect, parseHtml, getDownloadList, addDownload } from '../core/bilibili'
-import { ReloadOutlined, ClearOutlined } from '@ant-design/icons-vue'
-import { TaskData } from '../type/index'
+import { nanoid } from '@/utils'
+import { useHotkey } from '@/core/hook/useHotkey'
+import type { TaskData } from '../type/index'
+
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 const { taskList, rightTask, taskListArray, rightTaskId } = storeToRefs(store.taskStore())
 const selected = ref<string[]>([])
 const leftDivRef = ref<HTMLDivElement | null>(null)
+
+const taskKeyValueList = computed(() => {
+  return Array.from(taskList.value, ([key, value]) => ({ key, value }))
+})
 
 const openBrowser = (url: string) => {
   window.electron.openBrowser(url)
 }
 
 const formatDownloadStatus = (status: number, type: string) => {
-  return downloadStatusMap[status][type]
+  return downloadStatusMap[(status as STATUS_VALUE)][(type as 'label' | 'value')]
 }
 
 const formatQuality = (quality: number) => {
@@ -133,7 +177,7 @@ const showContextmenu = async (key: string) => {
   }
 }
 
-const showContextMenuReplyHandle = (clickType: ReplyMenuType) => {
+function showContextMenuReplyHandle (clickType: ReplyMenuType) {
   const MenuCallbackMap = new Map([
     ['open', openDir],
     ['delete', deleteVideos],
@@ -146,11 +190,16 @@ const showContextMenuReplyHandle = (clickType: ReplyMenuType) => {
     cb()
   }
 }
-
-window.electron.on('show-context-menu-reply', showContextMenuReplyHandle)
+let id: string
+onMounted(() => {
+  id = nanoid()
+  window.electron.on('show-context-menu-reply', id, showContextMenuReplyHandle)
+})
 
 onUnmounted(() => {
-  window.electron.off('show-context-menu-reply', showContextMenuReplyHandle)
+  if (id) {
+    window.electron.off('show-context-menu-reply', id)
+  }
 })
 
 const playVideo = () => {
@@ -160,7 +209,6 @@ const playVideo = () => {
 }
 
 const reloadDownload = async () => {
-  console.log('重新下载')
   const { response } = await window.electron.openReloadVideoDialog(selected.value.length)
   // 点击取消
   if (!response) return
@@ -180,6 +228,7 @@ const reloadDownload = async () => {
     }
   })
   try {
+    const _tempList: TaskData[] = []
     for (const key in selectedTask) {
       const item = selectedTask[key]
       if (!item.curPage) continue
@@ -193,10 +242,14 @@ const reloadDownload = async () => {
       store.taskStore().setTask(taskList)
       // 可以下载
       if (taskList[0].status === STATUS.PLAN_START) {
-        window.electron.downloadVideo(taskList[0])
+        // window.electron.downloadVideo(taskList[0])
+        _tempList.push(taskList[0])
         store.baseStore().addDownloadingTaskCount(1)
       }
       // await sleep(300)
+    }
+    if (_tempList.length > 0) {
+      window.electron.downloadVideoList(_tempList)
     }
   } catch (e: unknown) {
     message.error(e!.toString())
@@ -206,6 +259,10 @@ const reloadDownload = async () => {
 }
 
 const openDir = () => {
+  if (selected.value.length > 8) {
+    message.error(`同时打开 ${selected.value.length} 个文件夹？臣妾做不到o(╥﹏╥)o`)
+    return
+  }
   window.electron.openDir(toRaw(selected.value))
 }
 
@@ -290,9 +347,16 @@ function reloadBtnClick (key: string) {
   reloadDownload()
 }
 
+useHotkey('ctrl+a', () => {
+  selectAll()
+  // console.log(selected.value.length)
+})
 </script>
 
 <style scoped lang="less">
+.scroller {
+  height: 100%;
+}
 .container{
   box-sizing: border-box;
   position: relative;
@@ -310,9 +374,6 @@ function reloadBtnClick (key: string) {
     .download-item {
       border-bottom: 1px solid #eeeeee;
       cursor: pointer;
-      &:last-child {
-        border-bottom: 0;
-      }
       &.error-bg{
         background-color: rgba(0, 0, 0, 0.2);
       }
@@ -362,6 +423,14 @@ function reloadBtnClick (key: string) {
             vertical-align: middle;
           }
         }
+      }
+    }
+    .vue-recycle-scroller__item-view {
+      &:last-child {
+        .download-item {
+          border-bottom: 0;
+        }
+
       }
     }
   }

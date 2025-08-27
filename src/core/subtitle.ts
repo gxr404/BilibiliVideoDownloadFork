@@ -15,6 +15,7 @@ export const downloadSubtitle = (fileName: string, list: Subtitle[]) => {
 }
 
 const getSubtitleData = async (url: string, path: string) => {
+  // console.log('[main-got]: getSubtitleData ---> ', url)
   const { body: { body } } = await got(`https:${url}`, {
     headers: {
       'User-Agent': randUserAgent()

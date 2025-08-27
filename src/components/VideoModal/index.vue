@@ -1,72 +1,95 @@
 <template>
-  <a-modal
-    wrapClassName="custom-modal-padding"
-    :open="visible"
-    :confirmLoading="confirmLoading"
-    :okButtonProps="{ disabled: !(quality !== -1 && selected.length !== 0) }"
-    :closable="false"
-    :maskClosable="false"
-    title="当前视频信息"
-    okText="下载"
-    cancelText="取消"
-    centered
-    :width="(videoInfo?.page && videoInfo?.page.length) > 40 ? 700 : 600"
-    @cancel="cancel"
-    @ok="handleDownload">
-    <div class="video-modal custom-scroll-bar">
-      <div class="video-info fr">
-        <div class="image">
-          <a-image :src="videoInfo.cover" />
-        </div>
-        <div class="content fc jsa pl16" :style="{width: (videoInfo?.page && videoInfo?.page.length) > 40 ? `460px` : `380px`}">
-          <div class="text-active ellipsis-2" @click="openBrowser(videoInfo.url)">{{ videoInfo.title }}</div>
-          <div class="ellipsis-1">up：<span v-for="(item, index) in videoInfo.up" :key="index" class="text-active mr8" @click="openBrowser(`https://space.bilibili.com/${item.mid}`)">{{item.name}}</span></div>
-        </div>
-      </div>
-      <div class="mt16">
-        选择清晰度：
-        <div class="mt8" v-if="videoInfo.qualityOptions.length <= 0">
-          <p class="err-msg">o(╥﹏╥)o 无法获取清晰度列表</p>
-          <p class="err-msg" v-if="store.baseStore().loginStatus !== 2">
-          当前账号为「<span style="font-weight: bold;">{{store.baseStore().loginStatus === 1 ? '普通用户' : '游客'}}</span>」,请确认该视频是否是会员视频
-          </p>
-        </div>
-        <div class="mt8" v-else>
-          <a-radio-group v-model:value="quality">
-            <a-radio class="custom-radio" v-for="(item, index) in videoInfo.qualityOptions" :key="index" :value="item.value">
-              {{ item.label }}
-            </a-radio>
-          </a-radio-group>
-        </div>
-      </div>
-      <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac jsb mt16">
-        <div>这是一个多P视频，请选择</div>
-        <div>
-          <a-checkbox @change="onAllSelectedChange">
-            全选
-          </a-checkbox>
-          <a-checkbox v-model:checked="saveFilePrefix">
-            保留[P?]
-          </a-checkbox>
-        </div>
-      </div>
-      <!-- <div v-if="videoInfo.page[0]?.longTitle" class="fr ac jsb mt16">
-        <div>&nbsp;</div>
-        <div>
-          <a-checkbox v-model:checked="showLongTitle">
-            显示长标题
-          </a-checkbox>
-        </div>
-      </div> -->
-      <template v-if="videoList.length> 1">
-      <!-- {{ selected }} -->
-        <a-tabs v-model:activeKey="videoListActive">
-          <a-tab-pane
-            v-for="(videoListItem, tabIndex) in videoList"
-            :key="`videoList-${tabIndex}`"
-            :tab="videoListItem.title">
-            <div class="fr ac warp mt16 video-content">
-              <template v-for="(item, index) in videoListItem.data" :key="`videoList-${tabIndex}-${index}`">
+    <a-modal
+      wrapClassName="custom-modal-padding"
+      :open="visible"
+      :confirmLoading="confirmLoading"
+      :okButtonProps="{ disabled: !(quality !== -1 && selected.length !== 0) }"
+      :closable="false"
+      :maskClosable="false"
+      title="当前视频信息"
+      okText="下载"
+      cancelText="取消"
+      centered
+      :width="(videoInfo?.page && videoInfo?.page.length) > 40 ? 700 : 600"
+      :cancelButtonProps="{disabled: confirmLoading}"
+      @cancel="cancel"
+      @ok="handleDownload">
+      <a-spin :spinning="confirmLoading">
+        <div class="video-modal custom-scroll-bar">
+          <div class="video-info fr">
+            <div class="image">
+              <a-image :src="videoInfo.cover" />
+            </div>
+            <div class="content fc jsa pl16" :style="{width: (videoInfo?.page && videoInfo?.page.length) > 40 ? `460px` : `380px`}">
+              <div class="text-active ellipsis-2" @click="openBrowser(videoInfo.url)">{{ videoInfo.title }}</div>
+              <div class="ellipsis-1">up：<span v-for="(item, index) in videoInfo.up" :key="index" class="text-active mr8" @click="openBrowser(`https://space.bilibili.com/${item.mid}`)">{{item.name}}</span></div>
+            </div>
+          </div>
+          <div class="mt16">
+            选择清晰度：
+            <div class="mt8" v-if="videoInfo.qualityOptions.length <= 0">
+              <p class="err-msg">o(╥﹏╥)o 无法获取清晰度列表</p>
+              <p class="err-msg" v-if="store.baseStore().loginStatus !== 2">
+              当前账号为「<span style="font-weight: bold;">{{store.baseStore().loginStatus === 1 ? '普通用户' : '游客'}}</span>」,请确认该视频是否是会员视频
+              </p>
+            </div>
+            <div class="mt8" v-else>
+              <a-radio-group v-model:value="quality">
+                <a-radio class="custom-radio" v-for="(item, index) in videoInfo.qualityOptions" :key="index" :value="item.value">
+                  {{ item.label }}
+                </a-radio>
+              </a-radio-group>
+            </div>
+          </div>
+          <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac jsb mt16">
+            <div>这是一个多P视频，请选择</div>
+            <div>
+              <a-checkbox @change="onAllSelectedChange" v-model:checked="allSelected">
+                全选
+              </a-checkbox>
+              <a-checkbox v-model:checked="saveFilePrefix">
+                保留[P?]
+              </a-checkbox>
+            </div>
+          </div>
+          <!-- <div v-if="videoInfo.page[0]?.longTitle" class="fr ac jsb mt16">
+            <div>&nbsp;</div>
+            <div>
+              <a-checkbox v-model:checked="showLongTitle">
+                显示长标题
+              </a-checkbox>
+            </div>
+          </div> -->
+          <template v-if="videoList.length> 1">
+          <!-- {{ selected }} -->
+            <a-tabs v-model:activeKey="videoListActive">
+              <a-tab-pane
+                v-for="(videoListItem, tabIndex) in videoList"
+                :key="`videoList-${tabIndex}`"
+                :tab="videoListItem.title">
+                <div class="fr ac warp mt16 video-content">
+                  <template v-for="(item, index) in videoListItem.data" :key="`videoList-${tabIndex}-${index}`">
+                    <a-tooltip>
+                        <template #title>
+                          {{ item.longTitle || item.title }}
+                        </template>
+                      <div
+                        :class="['video-item', selected.includes(item.page) ? 'active' : '',
+                        store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
+                        @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
+                        <span class="badge" :data-content="item.badge">{{item.badge}}</span>
+                        <!-- <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span> -->
+                        <span class="ellipsis-1">{{ item.showTitle || item.title }}</span>
+                      </div>
+                    </a-tooltip>
+                  </template>
+                </div>
+              </a-tab-pane>
+            </a-tabs>
+          </template>
+          <template v-else>
+            <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac warp mt16 video-content">
+              <template v-for="(item, index) in videoInfo.page" :key="`main-${index}`">
                 <a-tooltip>
                     <template #title>
                       {{ item.longTitle || item.title }}
@@ -77,47 +100,27 @@
                     @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
                     <span class="badge" :data-content="item.badge">{{item.badge}}</span>
                     <!-- <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span> -->
-                    <span class="ellipsis-1">{{ item.showTitle || item.title }}</span>
+                    <span class="ellipsis-1">{{ item.title }}</span>
                   </div>
                 </a-tooltip>
               </template>
             </div>
-          </a-tab-pane>
-        </a-tabs>
-      </template>
-      <template v-else>
-        <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac warp mt16 video-content">
-          <template v-for="(item, index) in videoInfo.page" :key="`main-${index}`">
-            <a-tooltip>
-                <template #title>
-                  {{ item.longTitle || item.title }}
-                </template>
-              <div
-                :class="['video-item', selected.includes(item.page) ? 'active' : '',
-                store.baseStore().loginStatus !== 2 && item.badge=== '会员' ? 'disable' : '' ]"
-                @click="toggle(item.page, store.baseStore().loginStatus !== 2 && item.badge=== '会员')">
-                <span class="badge" :data-content="item.badge">{{item.badge}}</span>
-                <!-- <span class="ep-title" v-if="Boolean(item.epTitle)">{{ item.epTitle }}</span> -->
-                <span class="ellipsis-1">{{ item.title }}</span>
-              </div>
-            </a-tooltip>
           </template>
         </div>
-      </template>
-    </div>
-  </a-modal>
+      </a-spin>
+    </a-modal>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, toRaw } from 'vue'
+import { computed, h, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { store } from '../../store'
 import { getDownloadList, addDownload } from '../../core/bilibili'
 import { userQuality } from '../../assets/data/quality'
-import { VideoData } from '../../type'
 import { videoData } from '../../assets/data/default'
 import { STATUS } from '../../assets/data/status'
+import type { TaskData, VideoData } from '../../type'
 import type { CheckboxChangeEvent } from 'ant-design-vue/es/checkbox/interface'
 
 const visible = ref<boolean>(false)
@@ -158,6 +161,30 @@ const cancel = () => {
   confirmLoading.value = false
   quality.value = -1
   selected.value = []
+  allSelected.value = false
+}
+
+function showConfirm () {
+  return new Promise((resolve) => {
+    Modal.confirm({
+      title: '温馨提示(*^▽^*)',
+      content: () => {
+        return h('div', [
+          h('p', { style: { paddingTop: '20px' } }, '当前下载视频超过50个，强烈建议(除非必要)关闭“下载弹幕”，可提速30%'),
+          h('p', { style: { color: '#ccc', fontSize: '12px', textAlign: 'right', marginBottom: 0 } }, '—————— 关闭“下载弹幕”在界面左下角头像下边')
+        ])
+      },
+      icon: h('div'),
+      okText: '继续下载',
+      cancelText: '取消',
+      onOk () {
+        resolve(true)
+      },
+      onCancel () {
+        resolve(false)
+      }
+    })
+  })
 }
 
 const handleDownload = async () => {
@@ -166,6 +193,13 @@ const handleDownload = async () => {
     message.error('保存视频的文件夹不存在，请在“设置 → 下载地址”中选择一个有效路径')
     return
   }
+  if (selected.value.length > 50) {
+    if (store.settingStore().isDanmaku) {
+      const isOk = await showConfirm()
+      if (!isOk) return
+    }
+    message.warn('当前下载视频超过50个, 请耐心等待解析')
+  }
   confirmLoading.value = true
   // 获取当前选中视频的下载数据
   const list = await getDownloadList(toRaw(videoInfo.value), toRaw(selected.value), quality.value, undefined, undefined, saveFilePrefix.value)
@@ -173,14 +207,19 @@ const handleDownload = async () => {
   store.taskStore().setTask(taskList)
   let count = 0
   let selectedTask = ''
+  const _tempList: TaskData[] = []
   for (const key in taskList) {
     const task = taskList[key]
     if (task.status === STATUS.PLAN_START) {
-      window.electron.downloadVideo(task)
+      // window.electron.downloadVideo(task)
+      _tempList.push(task)
       count += 1
       if (!selectedTask) selectedTask = task.id
     }
     // await sleep(300)
+  }
+  if (_tempList.length > 0) {
+    window.electron.downloadVideoList(_tempList)
   }
   store.baseStore().addDownloadingTaskCount(count)
   confirmLoading.value = false

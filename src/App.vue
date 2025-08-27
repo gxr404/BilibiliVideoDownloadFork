@@ -84,6 +84,7 @@ import UserModal from './components/UserModal/index.vue'
 import LoginModal from './components/LoginModal/index.vue'
 import SettingDrawer from './components/SettingDrawer/index.vue'
 import pageInfo from '../package.json'
+import { nanoid } from './utils'
 
 const router = useRouter()
 const route = useRoute()
@@ -126,21 +127,38 @@ function quitLogin () {
   store.settingStore().setFace('')
 }
 
-async function downloadVideoStatusHandle ({ id, status, progress }: { id: string, status: number, progress: number }) {
+async function downloadVideoStatusHandle ({ id, status, progress, size = -1 }: { id: string, status: number, progress: number, size?: number }) {
   const tempTask = store.taskStore(pinia).getTask(id)
-  if (tempTask && tempTask?.progress && tempTask?.progress > progress) return
+  // console.log('[downloadVideoStatusHandle]: ', id, status, progress, tempTask)
+  if (tempTask && tempTask.status === STATUS.FAIL) return
+  // isReDownload??
+  // 如果出现进度倒退的情况 则抛弃此次 download-video-status, 失败的情况特殊 因为无 progress
+  if (
+    status !== STATUS.FAIL &&
+    tempTask && tempTask?.progress &&
+    tempTask?.progress > progress
+  ) {
+    return
+  }
 
   const task = tempTask
     ? JSON.parse(JSON.stringify(tempTask))
     : null
   // 成功和失败 更新 pinia electron-store，减少正在下载数；检查taskList是否有等待中任务，有则下载
-  if (task && [STATUS.COMPLETED, STATUS.FAIL].includes(status)) {
+  if (task && ([STATUS.COMPLETED, STATUS.FAIL] as number[]).includes(status)) {
     window.log.info(`${id} ${status}`)
-    let size = -1
+    // let size = -1
+    let _progress = progress
+    // 避免Fial是进度条倍清空
     if (status === STATUS.COMPLETED) {
-      size = await window.electron.getVideoSize(id)
+      _progress = typeof _progress === 'number' ? _progress : task.progress
     }
-    store.taskStore(pinia).setTask([{ ...task, status, progress, size }], false)
+    const setTaskData = { ...task, status, progress: _progress }
+    if (status === STATUS.COMPLETED) {
+      console.log('[render-videosize]: ', size)
+      setTaskData.size = size
+    }
+    store.taskStore(pinia).setTask([setTaskData], false)
     store.baseStore(pinia).reduceDownloadingTaskCount(1)
     // 检查下载
     const taskList = store.taskStore(pinia).taskList
@@ -152,28 +170,35 @@ async function downloadVideoStatusHandle ({ id, status, progress }: { id: string
     })
     allowDownload = addDownload(allowDownload)
     let count = 0
+    const _tempList: TaskData[] = []
     for (const key in allowDownload) {
       const item = allowDownload[key]
       if (item.status === STATUS.PLAN_START) {
-        window.electron.downloadVideo(item)
+        // window.electron.downloadVideo(item)
+        _tempList.push(item)
         count += 1
       }
       // await sleep(300)
     }
+    if (_tempList.length > 0) {
+      window.electron.downloadVideoList(_tempList)
+    }
     store.baseStore(pinia).addDownloadingTaskCount(count)
   }
   // 视频下载中 音频下载中 合成中 只更新pinia
-  if (task && [
+  if (task && ([
     STATUS.PLAN_START,
     STATUS.VIDEO_DOWNLOADING,
     STATUS.AUDIO_DOWNLOADING,
     STATUS.MERGING
-  ].includes(status)) {
+  ] as number[]).includes(status)) {
     store.taskStore(pinia).setTaskEasy([{ ...task, status, progress }])
   }
 }
 
+let id: string
 onMounted(() => {
+  id = nanoid()
   // 初始化pinia数据
   window.electron.once('init-store', async ({ setting, taskList }: { setting: SettingData, taskList: TaskData[] }) => {
     store.settingStore(pinia).setSetting(setting)
@@ -193,13 +218,19 @@ onMounted(() => {
     if (taskId) store.taskStore(pinia).setRightTaskId(taskId)
   })
   // 监听下载进度
-  window.electron.on('download-video-status', downloadVideoStatusHandle)
+  window.electron.on('download-video-status', id, downloadVideoStatusHandle)
+
+  // // 下载弹幕
+  // window.electron.on('download-danmuku', id, (cid: number, title: string, path: string) => {
+  //   downloadDanmaku(cid, title, path)
+  // })
+
   // 检查软件更新
   checkUpdate.value?.checkUpdate()
 })
 
 onUnmounted(() => {
-  window.electron.off('download-video-status', downloadVideoStatusHandle)
+  if (id) window.electron.off('download-video-status', id)
 })
 </script>
 
