@@ -78,7 +78,7 @@ jobs:
         if: matrix.os == 'ubuntu-24.04-arm'
         run: |
           sudo gem install --no-document fpm
-          npm run electron:build -- --arm64
+          USE_SYSTEM_FPM=true npm run electron:build -- --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
