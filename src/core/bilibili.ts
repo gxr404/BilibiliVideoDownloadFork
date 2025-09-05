@@ -42,6 +42,7 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
         fixQuality = realQuality
         // throw new Error('获取视频下载地址错误')
       }
+      console.log('[render downloadUrl]: ', downloadUrl)
       // 获取字幕地址
       const subtitle = await getSubtitle(currentCid, currentBvid)
       let taskId = nanoid()
@@ -377,17 +378,31 @@ const parseEP = async (html: string, url: string) => {
     // const { video_info, view_info, play_view_business_info } = __playinfo__.result || {}
     // const { ep_id } = view_info?.report || {}
     console.log('__playinfo__', __playinfo__)
-    const videoInfo = __playinfo__?.result?.video_info || __playinfo__?.raw?.data?.video_info
-    const viewInfo = __playinfo__?.result?.view_info || __playinfo__?.body?.viewInfo
-    const playViewBusinessInfo = __playinfo__?.result?.play_view_business_info || __playinfo__?.body?.playViewBusinessInfo
 
+    const videoInfo =
+      __playinfo__?.result?.video_info ||
+      __playinfo__?.raw?.data?.video_info ||
+      __playinfo__?.data?.result?.video_info
+
+    const viewInfo =
+      __playinfo__?.result?.view_info ||
+      __playinfo__?.body?.viewInfo ||
+      __playinfo__?.data?.result?.view_info
+
+    const playViewBusinessInfo =
+      __playinfo__?.result?.play_view_business_info ||
+      __playinfo__?.body?.playViewBusinessInfo ||
+      __playinfo__?.data?.result?.play_view_business_info
+
+    // console.log(videoInfo, viewInfo, playViewBusinessInfo)
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
     // const { epInfo, epList } = {} as any
     const mediaInfo = nextData?.props?.pageProps?.dehydratedState?.queries?.[1]?.state?.data
     let epInfo = playViewBusinessInfo?.episode_info || playViewBusinessInfo?.episodeInfo
+    // console.log(epInfo)
     // bvid丢失
     if (!epInfo.bvid) {
-      epInfo = Object.assign({}, epInfo, __playinfo__?.result?.arc)
+      epInfo = Object.assign({}, epInfo, __playinfo__?.result?.arc || __playinfo__?.data?.result?.arc)
     }
     const ep_id = viewInfo?.report?.ep_id || epInfo?.ep_id
     console.log('epInfo', epInfo)

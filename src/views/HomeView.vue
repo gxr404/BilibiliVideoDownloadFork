@@ -77,6 +77,7 @@ const download = async () => {
     if (error === -1) {
       message.error('解析错误或者不支持当前视频')
     } else {
+      console.error(error)
       message.error(`解析错误：${error}`)
     }
   }
