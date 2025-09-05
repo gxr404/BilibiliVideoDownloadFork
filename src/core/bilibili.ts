@@ -365,11 +365,19 @@ const parseEP = async (html: string, url: string) => {
   try {
     // const videoInfo = html.match(/\<script\>window\.\_\_INITIAL\_STATE\_\_\=([\s\S]*?)\;\(function\(\)\{var s\;/)
     const nextDataMatch = html.match(/\<script id="__NEXT_DATA__" type="application\/json"\>([\s\S]*?)\<\/script\>/)
-    if (!nextDataMatch) throw new Error('parse ep error')
+    if (!nextDataMatch) throw new Error('parse ep error __NEXT_DATA__')
     const nextData = JSON.parse(nextDataMatch[1])
-    const playurlSSRData = html.match(/const playurlSSRData = ({[\s\S]*?})\n\s*if \(playurlSSRData.*?\) {/)
-
-    if (!playurlSSRData) throw new Error('parse ep error')
+    // console.log('nextData', nextData)
+    // const playurlSSRData = html.match(/const playurlSSRData = ({[\s\S]*?})\n\s*if \(playurlSSRData.*?\) {/)
+    const playurlSSRData = html.match(/const playurlSSRData = ({[\s\S]*?})\n\s*(if \(playurlSSRData.*?\) {|window\.__PLAYURL_HYDRATE_DATA__)/)
+    // if (playurlSSRData && /window/.test(playurlSSRData?.[2])) {
+    //   console.log(playurlSSRData?.[2])
+    //   console.log('意外')
+    // }
+    if (!playurlSSRData) {
+      // console.log(html)
+      throw new Error('parse ep error playurlSSRData')
+    }
 
     const __playinfo__ = JSON.parse(playurlSSRData[1])
 
@@ -397,7 +405,16 @@ const parseEP = async (html: string, url: string) => {
     // console.log(videoInfo, viewInfo, playViewBusinessInfo)
     // const { h1Title, mediaInfo, epInfo, epList } = {} as any
     // const { epInfo, epList } = {} as any
-    const mediaInfo = nextData?.props?.pageProps?.dehydratedState?.queries?.[1]?.state?.data
+    let mediaInfo
+    if (Array.isArray(nextData?.props?.pageProps?.dehydratedState?.queries)) {
+      const queries = nextData?.props?.pageProps?.dehydratedState?.queries
+      if (queries.length === 1) {
+        mediaInfo = queries?.[0]?.state?.data
+      } else {
+        mediaInfo = queries?.[1]?.state?.data
+      }
+    }
+    // const mediaInfo = nextData?.props?.pageProps?.dehydratedState?.queries?.[1]?.state?.data
     let epInfo = playViewBusinessInfo?.episode_info || playViewBusinessInfo?.episodeInfo
     // console.log(epInfo)
     // bvid丢失
