@@ -125,6 +125,7 @@ function quitLogin () {
   store.baseStore().setLoginStatus(0)
   store.settingStore().setSESSDATA('')
   store.settingStore().setFace('')
+  store.settingStore().setDedeUserID('')
 }
 
 async function downloadVideoStatusHandle ({ id, status, progress, size = -1 }: { id: string, status: number, progress: number, size?: number }) {
@@ -202,11 +203,12 @@ onMounted(() => {
   // 初始化pinia数据
   window.electron.once('init-store', async ({ setting, taskList }: { setting: SettingData, taskList: TaskData[] }) => {
     store.settingStore(pinia).setSetting(setting)
-    const { status: loginStatus, face } = await checkLogin(store.settingStore(pinia).SESSDATA)
+    const { status: loginStatus, face, mid } = await checkLogin(store.settingStore(pinia).SESSDATA)
     store.baseStore(pinia).setLoginStatus(loginStatus)
     if (loginStatus !== 0) {
       isLogin.value = true
       store.settingStore().setFace(face)
+      store.settingStore().setDedeUserID(mid)
     }
     const taskMap: TaskList = new Map()
     for (const key in taskList) {

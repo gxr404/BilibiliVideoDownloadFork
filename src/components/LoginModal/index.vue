@@ -94,10 +94,11 @@ const login = async () => {
   // 储存SESSDATA
   store.settingStore().setSESSDATA(SESSDATA)
   // 验证SESSDATA
-  const { status, face } = await checkLogin(store.settingStore().SESSDATA)
+  const { status, face, mid } = await checkLogin(store.settingStore().SESSDATA)
   // 储存LoginStatus
   store.baseStore().setLoginStatus(status)
   store.settingStore().setFace(face)
+  store.settingStore().setDedeUserID(mid)
   hide()
 }
 

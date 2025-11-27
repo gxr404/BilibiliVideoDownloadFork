@@ -130,6 +130,7 @@ const quitLogin = () => {
   store.baseStore().setLoginStatus(0)
   store.settingStore().setSESSDATA('')
   store.settingStore().setFace('')
+  store.settingStore().setDedeUserID('')
 }
 
 defineExpose({

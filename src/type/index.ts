@@ -18,6 +18,7 @@ export interface SettingData {
   downloadingMaxSize: number,
   formatFileNameVal: number,
   face: string
+  DedeUserID: string
 }
 
 export interface SettingDataEasy {

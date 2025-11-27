@@ -163,6 +163,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
     // })
   }
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 下载视频 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  log.info('⭐️ 开始下载视频: ', videoInfo.downloadUrl.video)
   await pipeline(
     got.stream(videoInfo.downloadUrl.video, downloadConfig)
       .on('downloadProgress', throttle(videoProgressNotify, 4000))

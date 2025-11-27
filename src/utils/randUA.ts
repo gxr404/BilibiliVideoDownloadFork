@@ -1,11 +1,12 @@
 import UserAgent from 'user-agents'
 
-const userAgent = new UserAgent({
-  userAgent: /Chrome/,
+export const userAgent = new UserAgent({
+  userAgent: /^(?=.*Chrome)(?!.*Edg).*/,
+  platform: 'MacIntel',
   deviceCategory: 'desktop'
 })
 function randUserAgent () {
-  return `${userAgent.random().toString()} ${Math.floor(Math.random() * 100000)}`
+  return `${userAgent.random().toString()} ${String(Math.floor(Math.random() * 100000)).padStart(6, '0')}`
 }
 
 export {

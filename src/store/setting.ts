@@ -17,7 +17,8 @@ export const settingStore = defineStore('setting', {
       isCover: true,
       downloadingMaxSize: 5,
       formatFileNameVal: 0,
-      face: ''
+      face: '',
+      DedeUserID: ''
     }
     return setting
   },
@@ -81,6 +82,10 @@ export const settingStore = defineStore('setting', {
     setFace (url: string) {
       this.face = url || ''
       window.electron.setStore('setting.face', url)
+    },
+    setDedeUserID (mid: string) {
+      this.DedeUserID = mid || ''
+      window.electron.setStore('setting.DedeUserID', mid)
     },
     setFormatFileNameVal (value: number) {
       this.formatFileNameVal = value || 0

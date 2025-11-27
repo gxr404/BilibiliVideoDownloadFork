@@ -85,11 +85,45 @@ ipcMain.on('open-dir', (event, list) => {
   })
 })
 
+// const preSetCookie = {} as any
+
+// function changeHeaders (option: any) {
+//   const headers = option?.headers || {}
+//   const optionCookie = (option?.headers?.cookie as string) || ''
+//   let inputCookie = {} as any
+//   if (optionCookie) {
+//     inputCookie = parseCookie(optionCookie)
+//   }
+//   console.log('[preSetCookie]: ', preSetCookie)
+//   let resCookie = {}
+//   // resCookie = inputCookie
+//   resCookie = { ...preSetCookie, ...inputCookie } as any
+//   // if (inputCookie['bili_jct']) {
+//   //   console.log('跳过')
+//   //   resCookie = inputCookie
+//   // } else {
+//   //   resCookie = { ...preSetCookie, ...inputCookie } as any
+//   // }
+//   headers.cookie = toCookieStr(resCookie)
+// }
+
 // 发送http请求
 ipcMain.handle('got', (event, url, option) => {
+  // changeHeaders(option)
+  // console.log('option-->', option, url)
   return new Promise((resolve, reject) => {
     got(url, option)
       .then((res: any) => {
+        // console.log('[set cookie]:', res.headers['set-cookie'])
+        // if (Array.isArray(res.headers['set-cookie'])) {
+        //   const setCookieArr = res.headers['set-cookie']
+        //   setCookieArr.forEach(item => {
+        //     const cookieKeyValue = item.split(';')[0]
+        //     const [k, v] = cookieKeyValue.split('=')
+        //     preSetCookie[k] = v
+        //   })
+        // }
+
         return resolve({ body: res.body, redirectUrls: res.redirectUrls, headers: res.headers })
       })
       .catch((error: any) => {

@@ -120,7 +120,8 @@ const saveResponseCookies = (cookies: string[]) => {
 
 interface ICheckLoginRes {
   status: 0 | 1 | 2,
-  face: ''
+  face: '',
+  mid: ''
 }
 
 /**
@@ -137,14 +138,17 @@ const checkLogin = async (SESSDATA: string) => {
   })
   const data: ICheckLoginRes = {
     status: 0,
-    face: ''
+    face: '',
+    mid: ''
   }
   if (body.data.isLogin && !body.data.vipStatus) {
     data.status = 1
     data.face = body.data.face
+    data.mid = body.data.mid
   } else if (body.data.isLogin && body.data.vipStatus) {
     data.status = 2
     data.face = body.data.face
+    data.mid = body.data.mid
   }
   return data
 }
@@ -188,7 +192,8 @@ const checkUrlRedirect = async (videoUrl: string) => {
     config: {
       headers: {
         'User-Agent': ua,
-        cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
+        // 注意需要空格 `a=a; b=b`
+        cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}; bili_jct=${String(Math.floor(Math.random() * 100000)).padStart(6, '0')}`
       }
     }
   }
@@ -472,9 +477,11 @@ const parseEP = async (html: string, url: string) => {
         video: downLoadData.dash.video,
         audio: handleAudio(downLoadData.dash)
       }
+      console.log('[Raw acceptQuality]:', acceptQuality)
     } catch (error) {
       console.log('parseEP 获取视频地址失败，重新请求', error)
       acceptQuality = await getAcceptQuality(epInfo.cid, epInfo.bvid)
+      console.log('[getAcceptQuality acceptQuality]', acceptQuality)
     }
     const obj: VideoData = {
       id: '',
@@ -536,10 +543,11 @@ export const parseSS = async (html: string) => {
 const getAcceptQuality = async (cid: string, bvid: string) => {
   const SESSDATA = store.settingStore(pinia).SESSDATA
   const bfeId = store.settingStore(pinia).bfeId
+  const DedeUserID = store.settingStore(pinia).DedeUserID
   const config = {
     headers: {
       'User-Agent': randUserAgent(),
-      cookie: `SESSDATA=${SESSDATA};bfe_id=${bfeId}`
+      cookie: `SESSDATA=${SESSDATA}; DedeUserID=${DedeUserID};${bfeId ? ` bfe_id=${bfeId};` : ''}`
     },
     responseType: 'json'
   }
@@ -568,6 +576,7 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
 
   const res = await window.electron.got(
     `https://api.bilibili.com/x/player/wbi/playurl?${query}`,
+    // `https://api.bilibili.com/pgc/player/web/playurl/html5?${query}`,
     config
   )
   const { body, headers } = res
@@ -588,15 +597,14 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
 const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
   const SESSDATA = store.settingStore(pinia).SESSDATA
   const bfeId = store.settingStore(pinia).bfeId
+  const DedeUserID = store.settingStore(pinia).DedeUserID
   const config = {
     headers: {
       'User-Agent': randUserAgent(),
-      // bfe_id必须要加
-      cookie: SESSDATA ? `SESSDATA=${SESSDATA};bfe_id=${bfeId}` : ''
+      cookie: `SESSDATA=${SESSDATA}; DedeUserID=${DedeUserID};${bfeId ? ` bfe_id=${bfeId};` : ''}`
     },
     responseType: 'json'
   }
-
   const params = {
     cid,
     bvid,
@@ -621,7 +629,7 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     config
   )
   // console.log('playurl', `https://api.bilibili.com/x/player/wbi/playurl?${query}`)
-  // console.log('res', res)
+  // window.log.info('getDownloadUrl res: ', res)
   // 无视频可能是会员视频
   if (String(res.body.code) === '-404') {
     // throw new Error('无视频可能是会员视频')

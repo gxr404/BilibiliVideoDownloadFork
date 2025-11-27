@@ -41,7 +41,8 @@ export const settingData: SettingData = {
   isCover: true,
   downloadingMaxSize: 5,
   formatFileNameVal: 0,
-  face: ''
+  face: '',
+  DedeUserID: ''
 }
 
 export const taskData: TaskData = {

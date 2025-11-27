@@ -9,6 +9,7 @@ interface AnyObject {
 }
 
 declare interface Window {
+  log: import('electron-log').LogFunctions
   electron:{
     on: (channel: string, id: string, listener: (...args: any[]) => void) => void
     off: (channel: string, id: string) => void
