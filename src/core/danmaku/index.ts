@@ -5,7 +5,7 @@ import { DanmakuConverterConfig, DanmakuConverter } from './danmaku-converter'
 import { XmlDanmaku } from './xml-danmaku'
 // import { store, pinia } from '../../store'
 import store from '../mainStore'
-import { randUserAgent, encWbi } from '../../utils'
+import { getUserAgent, encWbi } from '../../utils'
 import { get, set } from '@/type'
 import { normalizeContent } from './ass-utils'
 
@@ -17,7 +17,7 @@ function getGotConfig (SESSDATA: string) {
   // console.log(store)
   return {
     headers: {
-      'User-Agent': randUserAgent(),
+      'User-Agent': getUserAgent(),
       cookie: `SESSDATA=${SESSDATA}`
     }
   }
@@ -88,7 +88,7 @@ export class JsonDanmaku {
     // console.log('[main-got]: danmaku getWbiKeys ---->')
     const { body } = await got('https://api.bilibili.com/x/web-interface/nav', {
       headers: {
-        'User-Agent': randUserAgent(),
+        'User-Agent': getUserAgent(),
         cookie: `SESSDATA=${SESSDATA}`
       },
       responseType: 'json'

@@ -26,7 +26,7 @@
     "@types/qrcode": "^1.4.2",
     "ant-design-vue": "^4.2.6",
     "dayjs": "^1.11.1",
-    "electron-log": "^5.4.3",
+    "electron-log": "5.4.3",
     "electron-store": "^8.0.3",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "2.1.2",
@@ -39,7 +39,7 @@
     "pinia": "^3.0.3",
     "protobufjs": "^7.5.4",
     "qrcode": "^1.5.0",
-    "user-agents": "^1.0.1444",
+    "user-agents": "2.1.82",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3",
     "vue-virtual-scroller": "^2.0.0-beta.8"
@@ -71,5 +71,8 @@
     "vue-cli-plugin-electron-builder": {
       "electron-builder": "^25.1.8"
     }
+  },
+  "engines": {
+    "node": ">=14.0.0 <=22.18.0"
   }
 }

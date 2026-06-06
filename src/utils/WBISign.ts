@@ -1,5 +1,4 @@
 import md5 from 'md5'
-import { randUserAgent } from '../utils'
 
 const mixinKeyEncTab = [
   46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -38,7 +37,6 @@ export function encWbi (params: AnyObject, img_key: string, sub_key: string) {
 export async function getWbiKeys (SESSDATA: string) {
   const { body } = await window.electron.got('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
-      'User-Agent': randUserAgent(),
       cookie: `SESSDATA=${SESSDATA}`
     },
     responseType: 'json'

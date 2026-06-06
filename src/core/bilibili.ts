@@ -1,5 +1,5 @@
 import pLimit from 'p-limit'
-import { formatSecond, randUserAgent, getWbiKeys, encWbi, formatFileName, filterTitle } from '../utils'
+import { formatSecond, getWbiKeys, encWbi, formatFileName, filterTitle } from '../utils'
 import { qualityMap } from '../assets/data/quality'
 import { VideoData, Page, DownloadUrl, Subtitle, TaskData } from '../type'
 import { store, pinia } from '../store'
@@ -131,7 +131,6 @@ interface ICheckLoginRes {
 const checkLogin = async (SESSDATA: string) => {
   const { body } = await window.electron.got('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
-      'User-Agent': randUserAgent(),
       cookie: `SESSDATA=${SESSDATA}`
     },
     responseType: 'json'
@@ -186,12 +185,10 @@ const checkUrl = (url: string) => {
 
 // 检查url是否有重定向
 const checkUrlRedirect = async (videoUrl: string) => {
-  const ua = randUserAgent()
   const params = {
     videoUrl,
     config: {
       headers: {
-        'User-Agent': ua,
         // 注意需要空格 `a=a; b=b`
         cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}; bili_jct=${String(Math.floor(Math.random() * 100000)).padStart(6, '0')}`
       }
@@ -228,6 +225,8 @@ const parseBV = async (html: string, url: string) => {
     if (!videoInfo) throw new Error(`parse bv error [videoInfo]: ${url}`)
     const videoInfoData = JSON.parse(videoInfo[1])
     let videoData = videoInfoData.videoData
+    // console.log('videoInfoData', videoInfoData)
+    // console.log('videoData', videoData)
     // 2025-06-15
     // 特殊情况:  https://www.bilibili.com/video/BV1RSTEzjEpL BV没有videoData
     if (!videoData && videoInfoData.videoInfo) {
@@ -251,6 +250,12 @@ const parseBV = async (html: string, url: string) => {
       }
     }
 
+    if (!videoData && videoInfoData?.video?.viewInfo) {
+      videoData = videoInfoData.video.viewInfo
+    }
+
+    console.log('parseBV videoData', videoData)
+
     // 获取视频下载地址
     let acceptQuality = null
     try {
@@ -264,7 +269,9 @@ const parseBV = async (html: string, url: string) => {
       }
     } catch (error) {
       console.log('parseBV 获取视频地址失败，重新请求', error)
+      // console.log('videoData', videoData)
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
+      // console.log('acceptQuality', acceptQuality)
     }
     const obj: VideoData = {
       id: '',
@@ -430,7 +437,6 @@ const parseEP = async (html: string, url: string) => {
     console.log('epInfo', epInfo)
     const config = {
       headers: {
-        'User-Agent': randUserAgent(),
         cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
       },
       responseType: 'json'
@@ -527,7 +533,6 @@ export const parseSS = async (html: string) => {
       url: `https://www.bilibili.com/bangumi/play/ep${mediaInfo.newestEp.id}`,
       config: {
         headers: {
-          'User-Agent': randUserAgent(),
           cookie: `SESSDATA=${store.settingStore(pinia).SESSDATA}`
         }
       }
@@ -540,13 +545,19 @@ export const parseSS = async (html: string) => {
 }
 
 // 获取视频清晰度列表
-const getAcceptQuality = async (cid: string, bvid: string) => {
+const getAcceptQuality = async (cid: string, bvid: string, retryCount = 0) => {
+  if (retryCount >= 3) {
+    return {
+      accept_quality: [],
+      video: [],
+      audio: []
+    }
+  }
   const SESSDATA = store.settingStore(pinia).SESSDATA
   const bfeId = store.settingStore(pinia).bfeId
   const DedeUserID = store.settingStore(pinia).DedeUserID
   const config = {
     headers: {
-      'User-Agent': randUserAgent(),
       cookie: `SESSDATA=${SESSDATA}; DedeUserID=${DedeUserID};${bfeId ? ` bfe_id=${bfeId};` : ''}`
     },
     responseType: 'json'
@@ -583,6 +594,10 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
   const accept_quality = body?.data?.accept_quality || []
   const video = body.data?.dash?.video || []
   const audio = handleAudio(body.data?.dash) || []
+  if (video.length === 0) {
+    console.log('retry getAcceptQuality', retryCount)
+    return getAcceptQuality(cid, bvid, retryCount + 1)
+  }
   const responseCookies = headers['set-cookie']
   // 保存返回的cookies
   saveResponseCookies(responseCookies)
@@ -594,13 +609,20 @@ const getAcceptQuality = async (cid: string, bvid: string) => {
 }
 
 // 获取指定清晰度视频下载地址
-const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
+const getDownloadUrl = async (cid: number, bvid: string, quality: number, retryCount = 0) => {
+  console.log(`[getDownloadUrl] cid: ${cid}, bvid: ${bvid}, quality: ${quality}, retryCount: ${retryCount}`)
+  if (retryCount >= 3) {
+    return {
+      video: '',
+      audio: '',
+      quality
+    }
+  }
   const SESSDATA = store.settingStore(pinia).SESSDATA
   const bfeId = store.settingStore(pinia).bfeId
   const DedeUserID = store.settingStore(pinia).DedeUserID
   const config = {
     headers: {
-      'User-Agent': randUserAgent(),
       cookie: `SESSDATA=${SESSDATA}; DedeUserID=${DedeUserID};${bfeId ? ` bfe_id=${bfeId};` : ''}`
     },
     responseType: 'json'
@@ -640,20 +662,24 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number) => {
     }
   }
   const { body: { data }, headers: { 'set-cookie': responseCookies } } = res
+  // console.log('getDownloadUrl res', res)
   const { dash } = data
+  if (!dash) {
+    return getDownloadUrl(cid, bvid, quality, retryCount + 1)
+  }
   // 保存返回的cookies
   saveResponseCookies(responseCookies)
-  const tempVideo = dash.video.find((item: any) => item.id === quality)
+  const tempVideo = dash?.video?.find((item: any) => item.id === quality)
   let tempQuality = quality
   // 自动降级视频清新度 取不到指定清晰度的视频，以返回数据的视频清晰度 第一项为准 如 4k视频 没有 dash.video[0]应该就是支持的最清晰的视频了
   let video = ''
   if (tempVideo) {
     video = tempVideo.baseUrl
   } else {
-    video = dash.video[0].baseUrl
-    tempQuality = dash.video[0].id
+    video = dash?.video[0].baseUrl
+    tempQuality = dash?.video[0].id
   }
-  const audio = getHighQualityAudio(dash.audio).baseUrl
+  const audio = getHighQualityAudio(dash?.audio).baseUrl
   // console.log('audio url', audio)
   return {
     video,
@@ -668,7 +694,6 @@ const getSubtitle = async (cid: number, bvid: string) => {
   const bfeId = store.settingStore(pinia).bfeId
   const config = {
     headers: {
-      'User-Agent': randUserAgent(),
       cookie: `SESSDATA=${SESSDATA};bfe_id=${bfeId}`
     },
     responseType: 'json'

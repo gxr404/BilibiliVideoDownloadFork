@@ -11,6 +11,7 @@ import downloadVideo from './core/download'
 import store from './core/mainStore'
 import { STATUS } from './assets/data/status'
 import pLimit from 'p-limit'
+import { getUserAgent, resetUA } from './utils'
 
 const got = require('got')
 const log = require('electron-log')
@@ -111,6 +112,14 @@ ipcMain.on('open-dir', (event, list) => {
 ipcMain.handle('got', (event, url, option) => {
   // changeHeaders(option)
   // console.log('option-->', option, url)
+  return fetchGot(url, option, 0)
+})
+
+function fetchGot (url: string, option: any, retryCount: number) {
+  if (!option?.header) {
+    option.header = {}
+  }
+  option.header['User-Agent'] = getUserAgent()
   return new Promise((resolve, reject) => {
     got(url, option)
       .then((res: any) => {
@@ -123,15 +132,42 @@ ipcMain.handle('got', (event, url, option) => {
         //     preSetCookie[k] = v
         //   })
         // }
+        if (
+          typeof res?.body === 'string' &&
+          res.body.includes('<title>验证码_哔哩哔哩</title>') &&
+          retryCount < 6
+        ) {
+          console.log('触发验证码，重试请求')
+          resetUA()
+          console.log('reset ua: ', url, option)
+          console.log('retry count: ', retryCount + 1)
 
+          return resolve(fetchGot(url, option, retryCount + 1))
+        }
         return resolve({ body: res.body, redirectUrls: res.redirectUrls, headers: res.headers })
       })
       .catch((error: any) => {
+        const ignoreAPI = ['api.bilibili.com/x/player/wbi/v2']
+        // console.log(!ignoreAPI.some(item => url.includes(item)))
+        // console.log(error?.message?.includes('412 (Precondition Failed)'))
+        // console.log(retryCount < 6)
+        // 触发风控 412 重置ua
+        if (
+          !ignoreAPI.some(item => url.includes(item)) &&
+          error?.message?.includes('412 (Precondition Failed)') &&
+          retryCount < 3
+        ) {
+          resetUA()
+          console.log('412 reset ua: ', url, option)
+          console.log('412 retry count: ', retryCount + 1)
+
+          return resolve(fetchGot(url, option, retryCount + 1))
+        }
         log.error(`http error: ${error.message}`)
         return reject(error.message)
       })
   })
-})
+}
 
 // 发送http请求，得到buffer
 ipcMain.handle('got-buffer', (event, url, option) => {

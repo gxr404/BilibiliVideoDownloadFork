@@ -1,4 +1,4 @@
-import { randUserAgent } from '../utils'
+import { getUserAgent } from '../utils'
 import { Subtitle } from '../type'
 
 const got = require('got')
@@ -18,7 +18,7 @@ const getSubtitleData = async (url: string, path: string) => {
   // console.log('[main-got]: getSubtitleData ---> ', url)
   const { body: { body } } = await got(`https:${url}`, {
     headers: {
-      'User-Agent': randUserAgent()
+      'User-Agent': getUserAgent()
     },
     responseType: 'json'
   })

@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import { IpcMainEvent } from 'electron'
 import { mergeVideoAudio } from './media'
-import { randUserAgent } from '../utils'
+import { getUserAgent } from '../utils'
 import { downloadSubtitle } from './subtitle'
 import { TaskData, SettingData } from '../type'
 import { downloadDanmaku } from './danmaku'
@@ -108,7 +108,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
   if (setting.isCover) {
     const imageConfig = {
       headers: {
-        'User-Agent': randUserAgent(),
+        'User-Agent': getUserAgent(),
         cookie: `SESSDATA=${setting.SESSDATA}`
       }
     }
@@ -141,7 +141,7 @@ export default async (videoInfo: TaskData, event: IpcMainEvent, setting: Setting
 
   const downloadConfig = {
     headers: {
-      'User-Agent': randUserAgent(),
+      'User-Agent': getUserAgent(),
       referer: videoInfo.url
     },
     cookie: `SESSDATA=${setting.SESSDATA}`
