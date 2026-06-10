@@ -116,10 +116,11 @@ ipcMain.handle('got', (event, url, option) => {
 })
 
 function fetchGot (url: string, option: any, retryCount: number) {
-  if (!option?.header) {
-    option.header = {}
+  if (!option?.headers) {
+    option.headers = {}
   }
-  option.header['User-Agent'] = getUserAgent()
+  option.headers['User-Agent'] = getUserAgent()
+
   return new Promise((resolve, reject) => {
     got(url, option)
       .then((res: any) => {
@@ -135,7 +136,7 @@ function fetchGot (url: string, option: any, retryCount: number) {
         if (
           typeof res?.body === 'string' &&
           res.body.includes('<title>验证码_哔哩哔哩</title>') &&
-          retryCount < 6
+          retryCount < 3
         ) {
           console.log('触发验证码，重试请求')
           resetUA()
@@ -147,6 +148,11 @@ function fetchGot (url: string, option: any, retryCount: number) {
         return resolve({ body: res.body, redirectUrls: res.redirectUrls, headers: res.headers })
       })
       .catch((error: any) => {
+        console.log('[fetchGot error]: =====================================')
+        console.log('—— option: ', option)
+        console.log('—— url: ', url)
+        console.log('—— error: ', error?.message)
+        console.log('====================================================')
         const ignoreAPI = ['api.bilibili.com/x/player/wbi/v2']
         // console.log(!ignoreAPI.some(item => url.includes(item)))
         // console.log(error?.message?.includes('412 (Precondition Failed)'))
