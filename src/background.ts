@@ -115,12 +115,16 @@ ipcMain.handle('got', (event, url, option) => {
   return fetchGot(url, option, 0)
 })
 
-function fetchGot (url: string, option: any, retryCount: number) {
+function fetchGot (url: string, option: any = {}, retryCount: number) {
   if (!option?.headers) {
     option.headers = {}
   }
   option.headers['User-Agent'] = getUserAgent()
-
+  const buvid = store.get('setting.buvid')
+  if (!option.headers?.cookie) option.headers.cookie = ''
+  if (!option.headers?.cookie.includes('buvid')) {
+    option.headers.cookie = option.headers.cookie + `;buvid3=${buvid.buvid3};buvid4=${buvid.buvid4};b_nut=${Date.now()}`
+  }
   return new Promise((resolve, reject) => {
     got(url, option)
       .then((res: any) => {

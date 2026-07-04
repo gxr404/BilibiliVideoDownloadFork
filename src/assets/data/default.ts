@@ -42,7 +42,11 @@ export const settingData: SettingData = {
   downloadingMaxSize: 5,
   formatFileNameVal: 0,
   face: '',
-  DedeUserID: ''
+  DedeUserID: '',
+  buvid: {
+    buvid3: '',
+    buvid4: ''
+  }
 }
 
 export const taskData: TaskData = {

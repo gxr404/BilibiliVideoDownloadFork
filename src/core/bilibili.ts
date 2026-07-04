@@ -260,6 +260,7 @@ const parseBV = async (html: string, url: string) => {
     let acceptQuality = null
     try {
       let downLoadData: any = html.match(/\<script\>window\.\_\_playinfo\_\_\=([\s\S]*?)\<\/script\>\<script\>window\.\_\_INITIAL\_STATE\_\_\=/)
+      console.log('downLoadData: ', downLoadData)
       if (!downLoadData) throw new Error(`parse bv error [downLoadData]: ${url}`)
       downLoadData = JSON.parse(downLoadData[1])
       acceptQuality = {
@@ -269,9 +270,9 @@ const parseBV = async (html: string, url: string) => {
       }
     } catch (error) {
       console.log('parseBV 获取视频地址失败，重新请求', error)
-      // console.log('videoData', videoData)
+      console.log('videoData', videoData)
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
-      // console.log('acceptQuality', acceptQuality)
+      console.log('acceptQuality', acceptQuality)
     }
     const obj: VideoData = {
       id: '',
@@ -914,11 +915,31 @@ function handleAudio (dash: any) {
   return audio
 }
 
+async function getBuvid () {
+  const res = await window.electron.got(
+    'https://api.bilibili.com/x/frontend/finger/spi', {
+      responseType: 'json'
+    }
+  )
+  const { body } = res
+  if (body?.code === 0) {
+    return {
+      buvid3: body?.data?.b_3 || '',
+      buvid4: body?.data?.b_4 || ''
+    }
+  }
+  return {
+    buvid3: '',
+    buvid4: ''
+  }
+}
+
 export {
   checkLogin,
   checkUrl,
   checkUrlRedirect,
   parseHtml,
   getDownloadList,
-  addDownload
+  addDownload,
+  getBuvid
 }

@@ -77,7 +77,7 @@ import TitleBar from './components/TitleBar/index.vue'
 // import TabBar from './components/TabBar/index.vue'
 import CheckUpdate from './components/CheckUpdate/index.vue'
 import { pinia, store } from './store'
-import { checkLogin, addDownload } from './core/bilibili'
+import { checkLogin, addDownload, getBuvid } from './core/bilibili'
 import { SettingData, TaskData, TaskList } from './type'
 import { STATUS } from './assets/data/status'
 import UserModal from './components/UserModal/index.vue'
@@ -203,6 +203,8 @@ onMounted(() => {
   // 初始化pinia数据
   window.electron.once('init-store', async ({ setting, taskList }: { setting: SettingData, taskList: TaskData[] }) => {
     store.settingStore(pinia).setSetting(setting)
+    const buvid = await getBuvid()
+    store.settingStore().setBuvid(buvid)
     const { status: loginStatus, face, mid } = await checkLogin(store.settingStore(pinia).SESSDATA)
     store.baseStore(pinia).setLoginStatus(loginStatus)
     if (loginStatus !== 0) {
