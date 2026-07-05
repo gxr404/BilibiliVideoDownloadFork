@@ -12,11 +12,13 @@ import { nanoid } from '@/utils'
  */
 const getDownloadList = async (videoInfo: VideoData, selected: number[], quality: number, isReload = false, oldTask?: VideoData, saveFilePrefix = true) => {
   const downloadList: VideoData[] = []
-  const limit = pLimit(8)
+  // 太大容易412
+  const limit = pLimit(4)
   const selectedLen = selected.length
   const promiseList = selected.map((item) => {
     return limit(async () => {
       const currentPage = item
+      // console.log('videoInçfo', videoInfo)
       // 请求选中清晰度视频下载地址
       const currentPageData = videoInfo.page.find(item => item.page === currentPage)
       if (!currentPageData) throw new Error('获取视频下载地址错误')
@@ -43,8 +45,11 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
         // throw new Error('获取视频下载地址错误')
       }
       console.log('[render downloadUrl]: ', downloadUrl)
-      // 获取字幕地址
-      const subtitle = await getSubtitle(currentCid, currentBvid)
+      let subtitle: Subtitle[] = []
+      if (store.settingStore(pinia).isSubtitle) {
+        // 获取字幕地址
+        subtitle = await getSubtitle(currentCid, currentBvid)
+      }
       let taskId = nanoid()
       if (isReload && oldTask) {
         taskId = oldTask.id
@@ -274,6 +279,8 @@ const parseBV = async (html: string, url: string) => {
       acceptQuality = await getAcceptQuality(videoData.cid, videoData.bvid)
       console.log('acceptQuality', acceptQuality)
     }
+
+    // console.log('parseBVPageData(videoData, url)', parseBVPageData(videoData, url))
     const obj: VideoData = {
       id: '',
       parseType: 'bv',
@@ -573,7 +580,8 @@ const getAcceptQuality = async (cid: string, bvid: string, retryCount = 0) => {
     fourk: 1,
     fnver: 0,
     fnval: 80,
-    session: '68191c1dc3c75042c6f35fba895d65b0'
+    // session: '68191c1dc3c75042c6f35fba895d65b0',
+    ...getPlayurlParam()
   }
   let query = ''
   // 未登录需要wbi签名 未登录的情况下才可能调用 几乎没有 // TODO: 待定是否删除
@@ -635,7 +643,9 @@ const getDownloadUrl = async (cid: number, bvid: string, quality: number, retryC
     otype: 'json',
     fourk: 1,
     fnver: 0,
-    fnval: 80
+    fnval: 80,
+    // session: '68191c1dc3c75042c6f35fba895d65b0',
+    ...getPlayurlParam()
   }
   let query = ''
   // 未登录需要wbi签名 未登录的情况下才可能调用 几乎没有 // TODO: 待定是否删除
@@ -705,7 +715,8 @@ const getSubtitle = async (cid: number, bvid: string) => {
     // console.log(cid, bvid, config)
     const queryParams: any = {
       cid,
-      bvid
+      bvid,
+      wts: Date.now()
     }
     const query = Object.keys(queryParams).map(key => `${key}=${queryParams[key]}`).join('&')
     const apiUri = `https://api.bilibili.com/x/player/wbi/v2?${query}`
@@ -932,6 +943,48 @@ async function getBuvid () {
     buvid3: '',
     buvid4: ''
   }
+}
+
+function getPlayurlParam () {
+  function randomString (length: number) {
+    return Array.from({ length }, () => {
+      return String.fromCharCode(
+        Math.floor(Math.random() * 95) + 32 // ASCII printable: 32~126
+      )
+    }).join('')
+  }
+  function randomInt (min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1)) + min
+  }
+
+  const data = {
+    web_location: 1550101,
+    dm_img_list: '[]',
+    dm_img_str: btoa(
+      randomString(randomInt(16, 64))
+    ).slice(0, -2),
+    dm_cover_img_str: btoa(
+      randomString(randomInt(32, 128))
+    ).slice(0, -2),
+    dm_img_inter: '{"ds":[{"t":2,"c":"YmlsaS1oZWFkZXJfX2JhciBtaW5pLWhlYWRlcg","p":[213,71,71],"s":[239,4858,6210]}],"wh":[3369,5913,15],"of":[119,238,119]}',
+    from_client: 'BROWSER',
+    wts: Date.now(),
+    w_rid: crypto.randomUUID().replace(/-/g, ''), // '8716ef37317ddb4adb669ea0c232180b',
+    session: crypto.randomUUID().replace(/-/g, '')
+  }
+
+  //   app_id 100
+  // session 7570071faa8ffc63c5c10002599a4e1a
+  // voice_balance 1
+  // web_location 1315873
+  // dm_img_list
+  // [{"x":2479,"y":3129,"z":0,"timestamp":2,"k":94,"type":0}]
+  // dm_img_str V2ViR0wgMS4wIChPcGVuR0wgRVMgMi4wIENocm9taXVtKQ
+  // dm_cover_img_str QU5HTEUgKEFwcGxlLCBBTkdMRSBNZXRhbCBSZW5kZXJlcjogQXBwbGUgTTEgUHJvLCBVbnNwZWNpZmllZCBWZXJzaW9uKUdvb2dsZSBJbmMuIChBcHBsZS
+  // dm_img_inter {"ds":[{"t":2,"c":"YmlsaS1oZWFkZXJfX2JhciBtaW5pLWhlYWRlcg","p":[213,71,71],"s":[239,4858,6210]}],"wh":[3369,5913,15],"of":[119,238,119]}
+  // w_rid 8716ef37317ddb4adb669ea0c232180b
+  // wts 1783190219
+  return data
 }
 
 export {
