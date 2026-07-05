@@ -4,10 +4,6 @@ type Simplify<T> = {
 
 export type MenuType = 'download' | 'home'
 
-export interface SettingBuvid {
-  buvid3: string,
-  buvid4: string
-}
 export interface SettingData {
   downloadPath: string,
   defaultDownladPath: string,
@@ -23,7 +19,8 @@ export interface SettingData {
   formatFileNameVal: number,
   face: string
   DedeUserID: string,
-  buvid: SettingBuvid
+  buvid3: string,
+  buvid4: string
 }
 
 export interface SettingDataEasy {

@@ -204,7 +204,7 @@ onMounted(() => {
   window.electron.once('init-store', async ({ setting, taskList }: { setting: SettingData, taskList: TaskData[] }) => {
     store.settingStore(pinia).setSetting(setting)
     const buvid = await getBuvid()
-    store.settingStore().setBuvid(buvid)
+    store.settingStore().setBuvid(buvid.buvid3, buvid.buvid4)
     const { status: loginStatus, face, mid } = await checkLogin(store.settingStore(pinia).SESSDATA)
     store.baseStore(pinia).setLoginStatus(loginStatus)
     if (loginStatus !== 0) {

@@ -43,10 +43,8 @@ export const settingData: SettingData = {
   formatFileNameVal: 0,
   face: '',
   DedeUserID: '',
-  buvid: {
-    buvid3: '',
-    buvid4: ''
-  }
+  buvid3: '',
+  buvid4: ''
 }
 
 export const taskData: TaskData = {

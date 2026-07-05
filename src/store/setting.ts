@@ -19,10 +19,8 @@ export const settingStore = defineStore('setting', {
       formatFileNameVal: 0,
       face: '',
       DedeUserID: '',
-      buvid: {
-        buvid3: '',
-        buvid4: ''
-      }
+      buvid3: '',
+      buvid4: ''
     }
     return setting
   },
@@ -40,7 +38,8 @@ export const settingStore = defineStore('setting', {
       isCover: state.isCover,
       downloadingMaxSize: state.downloadingMaxSize,
       formatFileNameVal: state.formatFileNameVal,
-      buvid: state.buvid
+      buvid3: state.buvid3,
+      buvid4: state.buvid4
     })
   },
   actions: {
@@ -88,9 +87,11 @@ export const settingStore = defineStore('setting', {
       this.face = url || ''
       window.electron.setStore('setting.face', url)
     },
-    setBuvid (buvid: {buvid3: string, buvid4: string}) {
-      this.buvid = buvid
-      window.electron.setStore('setting.buvid', buvid)
+    setBuvid (buvid3: string, buvid4: string) {
+      this.buvid3 = buvid3
+      this.buvid4 = buvid4
+      window.electron.setStore('setting.buvid3', buvid3)
+      window.electron.setStore('setting.buvid4', buvid4)
     },
     setDedeUserID (mid: string) {
       this.DedeUserID = mid || ''

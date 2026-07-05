@@ -13,7 +13,7 @@ import { nanoid } from '@/utils'
 const getDownloadList = async (videoInfo: VideoData, selected: number[], quality: number, isReload = false, oldTask?: VideoData, saveFilePrefix = true) => {
   const downloadList: VideoData[] = []
   // 太大容易412
-  const limit = pLimit(4)
+  const limit = pLimit(2)
   const selectedLen = selected.length
   const promiseList = selected.map((item) => {
     return limit(async () => {
@@ -46,6 +46,7 @@ const getDownloadList = async (videoInfo: VideoData, selected: number[], quality
       }
       console.log('[render downloadUrl]: ', downloadUrl)
       let subtitle: Subtitle[] = []
+      // console.log('store.settingStore(pinia).isSubtitle', store.settingStore(pinia).isSubtitle)
       if (store.settingStore(pinia).isSubtitle) {
         // 获取字幕地址
         subtitle = await getSubtitle(currentCid, currentBvid)

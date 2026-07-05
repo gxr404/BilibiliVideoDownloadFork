@@ -120,10 +120,11 @@ function fetchGot (url: string, option: any = {}, retryCount: number) {
     option.headers = {}
   }
   option.headers['User-Agent'] = getUserAgent()
-  const buvid = store.get('setting.buvid')
+  const buvid3 = store.get('setting.buvid3')
+  const buvid4 = store.get('setting.buvid4')
   if (!option.headers?.cookie) option.headers.cookie = ''
   if (!option.headers?.cookie.includes('buvid')) {
-    option.headers.cookie = option.headers.cookie + `;buvid3=${buvid.buvid3};buvid4=${buvid.buvid4};b_nut=${Date.now()}`
+    option.headers.cookie = option.headers.cookie + `;buvid3=${buvid3};buvid4=${buvid4};b_nut=${Date.now()}`
   }
   return new Promise((resolve, reject) => {
     got(url, option)
