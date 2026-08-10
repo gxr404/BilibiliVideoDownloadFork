@@ -150,7 +150,7 @@ const checkScanStatus = (oauthKey: string) => {
   run(oauthKey)
   async function run (oauthKey: string) {
     if (!isCheck.value) return
-    const { body } = await window.electron.got(QRCodeAPI, {
+    const { body, headers: resHeader } = await window.electron.got(QRCodeAPI, {
       method: 'GET',
       responseType: 'json',
       headers: {
@@ -192,7 +192,18 @@ const checkScanStatus = (oauthKey: string) => {
       return
     }
     // 获取SESSDATA
-    QRSESSDATA.value = body.data.url.match(/SESSDATA=(\S*)&bili_jct/)[1]
+    try {
+      QRSESSDATA.value = body.data.url.match(/SESSDATA=(\S*)&bili_jct/)[1]
+    } catch (e) {
+      console.error(`返回的url不存在SESSDATA ${e}`)
+      // 20260810 返回的url 已经不带SESSDATA 需从 response 里的set-cookie获取
+      const setCookieList = resHeader['set-cookie']
+      if (Array.isArray(setCookieList)) {
+        const SESSDATACookie = setCookieList.find((str: string) => /^SESSDATA=/.test(str))
+        if (!SESSDATACookie) throw new Error('SESSDATA not found ')
+        QRSESSDATA.value = SESSDATACookie.match(/^SESSDATA=(\S*)/)[1]
+      }
+    }
     scanStatus.value = 2
     isCheck.value = false
   }
